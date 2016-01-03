@@ -1,0 +1,28 @@
+[package]
+name = "synthir"
+version = "0.1.0"
+authors = ["snf"]
+
+[profile.release]
+debug = true
+
+[dependencies]
+ieee754 = "0.2"
+num = "0.1"
+rand = "0.3"
+bit-vec = "0.4"
+bit-set = "0.2"
+libc = "0.2"
+time = "0.1"
+
+[dependencies.capstone]
+git = "https://github.com/ebfe/rust-capstone.git"
+
+[dependencies.z3]
+git = "https://github.com/snf/z3-rs.git"
+
+[dependencies.llvm_assemble]
+git = "https://github.com/snf/llvm_assemble.git"
+
+[dependencies.synthir_execute]
+git = "https://github.com/snf/synthir_execute.git"
