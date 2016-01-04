@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Error};
-use std::slice::SliceConcatExt;
 
 use assembler::Assemble;
 use disassembler::Disassemble;
 
 use definitions::{GenDefinition, MemoryDefinition, Definition};
-//use execute::{Execute, PtraceExecute};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone,Copy,Debug)]
@@ -82,20 +80,3 @@ impl Display for Instruction {
         Ok(())
     }
 }
-
-
-// fn get_dependencies() {
-//     let deps = X86::gen_definition();
-//     let regs_mem = MemoryDefinition::new_with_size(deps.regs_size);
-
-//     //let dep_regs: Vec<&str> = Vec::new();
-//     let dep_regs: HashMap<&str, Vec<&str>> = HashMap::new();
-//     let mod_regs: Vec<&str> = Vec::new();
-//     // The algorithm is:
-
-//     // Change one register at a time and check if the output changes.
-//     // If it changes, I add it to the possible list of sources. Also
-//     // check for the modifications and diff at the bit granularity.
-
-//     //
-// }

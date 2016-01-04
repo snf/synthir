@@ -2,7 +2,6 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
-#![feature(slice_concat_ext)]
 #![feature(iter_cmp)]
 extern crate num;
 extern crate rand;

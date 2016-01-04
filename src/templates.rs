@@ -69,7 +69,7 @@ impl Template for FlagTemplate {
 
 #[cfg(test)]
 mod test {
-    use expr::{Expr, traverse, Caca};
+    use expr::{Expr};
     use templates::FlagTemplate;
     use templates::Template;
 
