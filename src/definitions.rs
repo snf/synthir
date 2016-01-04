@@ -572,7 +572,7 @@ impl Definition {
                     // Find which is the minimium modified register
                     sub_regs
                         .into_iter()
-                        .min_by(|&name| self.sub_regs[name].bit_width())
+                        .min_by_key(|&name| self.sub_regs[name].bit_width())
                         .unwrap()
                 };
             if !res.contains(to_insert) {

@@ -653,16 +653,16 @@ fn test_get_io_sets() {
     println!("ins: {:?}", ins);
 
     let mut deps = HashMap::new();
-    deps.insert(Dep::new("AL").bit_width(8),
-                vec![Dep::new("AL").bit_width(8)]);
-    deps.insert(Dep::new("OF").bit_width(1),
-                vec![Dep::new("AL").bit_width(8)]);
-    deps.insert(Dep::new("PF").bit_width(1),
-                vec![Dep::new("AL").bit_width(8)]);
-    deps.insert(Dep::new("AF").bit_width(1),
-                vec![Dep::new("AL").bit_width(8)]);
-    deps.insert(Dep::new("ZF").bit_width(1),
-                vec![Dep::new("AL").bit_width(8)]);
+    deps.insert(Dep::new("AL").bit_width(8).clone(),
+                vec![Dep::new("AL").bit_width(8).clone()]);
+    deps.insert(Dep::new("OF").bit_width(1).clone(),
+                vec![Dep::new("AL").bit_width(8).clone()]);
+    deps.insert(Dep::new("PF").bit_width(1).clone(),
+                vec![Dep::new("AL").bit_width(8).clone()]);
+    deps.insert(Dep::new("AF").bit_width(1).clone(),
+                vec![Dep::new("AL").bit_width(8).clone()]);
+    deps.insert(Dep::new("ZF").bit_width(1).clone(),
+                vec![Dep::new("AL").bit_width(8).clone()]);
 
     let res = work.get_io_sets(&ins, &deps);
 
@@ -685,8 +685,8 @@ fn test_get_expr_inc_al() {
     let mut deps = HashMap::new();
     // deps.insert(Dep::new("OF").bit_width(1),
     //             vec![Dep::new("AL").bit_width(8)]);
-    deps.insert(Dep::new("AL").bit_width(8),
-                vec![Dep::new("AL").bit_width(8)]);
+    deps.insert(Dep::new("AL").bit_width(8).clone(),
+                vec![Dep::new("AL").bit_width(8).clone()]);
     let res = work.get_io_sets(&ins, &deps).unwrap();
 
     for (dep, ioset) in &res {
