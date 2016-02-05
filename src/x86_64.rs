@@ -1,6 +1,6 @@
 use assembler::Assemble;
 use disassembler::Disassemble;
-use native::{Native, Arch, Instruction};
+use native::{Arch, Instruction};
 //use definitions::{RegDefinition, SubRegDefinition, Definition, GenDefinition};
 
 //use std::collections::HashMap;

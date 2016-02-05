@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use native::{Arch, Instruction};
 use capstone as cs;
 

@@ -1,6 +1,5 @@
 use num::bigint::{ToBigUint, BigUint};
-use num::traits::{One, Zero, ToPrimitive};
-use num::Num;
+use num::traits::{One, ToPrimitive};
 use std::mem;
 
 pub trait Max {

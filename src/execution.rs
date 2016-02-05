@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter, Error};
 use std::hash::{Hash, Hasher};
 
-use definitions::{Definition, GenDefinition, MemoryDefinition};
+use definitions::{Definition, MemoryDefinition};
 use execute::{Execute, PtraceExecute};
 
 /// Defines dependencies

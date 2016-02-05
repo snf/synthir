@@ -1,5 +1,4 @@
 use std::collections::{HashMap};
-use std::mem;
 
 use op::{OpArith, OpLogic, OpUnary, OpBool, OpCast};
 use expr::{Expr, ExprType};

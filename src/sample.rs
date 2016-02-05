@@ -1,14 +1,12 @@
 use op::{OpArith, OpLogic, OpUnary, OpBool, OpCast,
          OPARITH, OPLOGIC, OPUNARY, OPBOOL, OPCAST};
 use expr::{Expr, ExprType, ILiteral};
-use utils::Max;
-use stmt::Stmt;
 
 use num::{BigUint};
-use num::traits::{One, Zero};
+use num::traits::{Zero};
 use num::bigint::ToBigUint;
 use rand;
-use rand::{Rand, Rng, ThreadRng};
+use rand::{Rng, ThreadRng};
 use std::iter::Iterator;
 
 mod constants {
@@ -634,7 +632,8 @@ fn sample() -> Expr {
     Expr::Reg("EAX".to_owned(), 32)
 }
 
-mod test {
+#[bench]
+mod bench {
     use expr::Expr;
     use num::bigint::ToBigUint;
     use sample::{constants, RandExprSampler};
@@ -649,6 +648,15 @@ mod test {
             black_box(sample.sample_expr_w(Some(32)));
         });
     }
+
+}
+
+#[test]
+mod test {
+    use expr::Expr;
+    use num::bigint::ToBigUint;
+    use sample::{constants, RandExprSampler};
+    use test::{Bencher, black_box};
 
     #[test]
     fn test_gen_alternated() {

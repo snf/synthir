@@ -1,4 +1,4 @@
-use native::{Arch, Instruction};
+use native::{Arch};
 use llvm_assemble as l_a;
 
 pub trait Assemble {

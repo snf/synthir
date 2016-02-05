@@ -1,5 +1,4 @@
 #![feature(test)]
-#![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
 extern crate num;
@@ -37,11 +36,12 @@ pub mod work;
 mod test_stochastic {
     use num::bigint::ToBigUint;
     use std::collections::HashMap;
+
+    #[bench]
     use test::{Bencher, black_box};
 
     use expr::Expr;
     use stochastic::{Stochastic};
-    use verify::equal_or_counter;
 
     pub fn test_popcnt() {
         let eax = Expr::Reg("EAX".to_owned(), 32);
@@ -130,9 +130,7 @@ mod test_sub_eax_1 {
 mod test_work {
     use disassembler::Disassemble;
     use work::{Work};
-    use execution::Dep;
     use x86_64::X86_64;
-    use std::collections::HashMap;
 
     pub fn new_work() {
         Work::new(&X86_64);
@@ -342,10 +340,10 @@ fn main() {
     //     test_stochastic::test_sub_eax_1();
     // }
     //test_stochastic::test_popcnt();
-    //test_work::push_rax();
+    test_work::push_rax();
     //test_work::pop_rax();
     //test_work::popcnt_rax_rcx();
-    test_work::mul_rcx();
+    //test_work::mul_rcx();
     //test_stochastic::mul_rcx();
     //test_work::w_vaddps();
 }

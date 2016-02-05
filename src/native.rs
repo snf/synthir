@@ -1,10 +1,9 @@
-use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Error};
 
 use assembler::Assemble;
 use disassembler::Disassemble;
 
-use definitions::{GenDefinition, MemoryDefinition, Definition};
+use definitions::{GenDefinition};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone,Copy,Debug)]

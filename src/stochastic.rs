@@ -1,11 +1,11 @@
 use emulator::{State, execute_expr};
-use expr::{Expr, ExprBuilder, EPoints, traverse_get_points};
+use expr::{Expr, EPoints, traverse_get_points};
 use sample::{RandExprSampler};
 use utils::{Hamming};
 
 use num::bigint::BigUint;
-use num::traits::{One, Zero, ToPrimitive};
-use rand::{Rand, Rng, ThreadRng, thread_rng};
+use num::traits::{ToPrimitive};
+use rand::{Rng, ThreadRng, thread_rng};
 use rand::distributions::{Sample, Weighted, WeightedChoice};
 use std::collections::HashMap;
 use time::precise_time_s;

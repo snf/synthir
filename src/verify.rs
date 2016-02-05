@@ -1,11 +1,11 @@
 use num::bigint::BigUint;
-use num::traits::{One, Zero, ToPrimitive};
+use num::traits::{ToPrimitive};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::string::ToString;
 
 use expr::{Expr, ExprType};
-use op::{OpArith, OpLogic, OpUnary, OpBool, OpCast};
+use op::{OpArith, OpLogic, OpUnary, OpBool};//, OpCast};
 use z3::{Z3, Z3Ast};
 
 /// Owns a Z3 context and has a cache for storing Registers

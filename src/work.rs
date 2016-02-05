@@ -3,14 +3,12 @@ use num::traits::{One, Zero, ToPrimitive};
 use num::bigint::{ToBigUint, BigUint};
 
 use expr::Expr;
-use sample::{DepValueSampler, RandExprSampler};
-use emulator::{Value, execute_expr};
+use sample::{DepValueSampler};
 use native::{Native, Opnd, Instruction};
-use definitions::{Definition, GenDefinition, MemoryDefinition};
-use execute::{Execute, PtraceExecute};
+use definitions::{Definition, GenDefinition};
 use execution::{Execution, ExecutionRes, Dep};
 use stochastic::Stochastic;
-use utils::{flip_bits, LastCache};
+use utils::{LastCache};
 
 // XXX_ this file is probably competing with definition.rs for worst
 // code ever (ever).

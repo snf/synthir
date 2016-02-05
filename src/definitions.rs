@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::borrow::Borrow;
-use std::io::Write;
-use num::traits::{One, Zero};
-use num::bigint::{ToBigUint, BigUint};
+use num::traits::{One};
+use num::bigint::{BigUint};
 
-use bit_vec::BitVec;
 use bit_set::BitSet;
 
 use native::Instruction;
