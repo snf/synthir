@@ -61,7 +61,7 @@ impl Stochastic {
         moves.insert(Mov::Remove, 4);
         Stochastic {
             io_sets: io_sets.to_vec(),
-            beta: 0.9,
+            beta: 0.4,
             curr_cost: 10000.0,
             prev_expr: Expr::NoOp,
             curr_expr: Expr::NoOp,
@@ -217,6 +217,8 @@ impl Stochastic {
     pub fn get_expr(&self) -> Expr { self.curr_expr.clone() }
 }
 
+const MISALIGN_PENALTY: f64 = 1f64;
+
 /// A temporal object that will be used to calculate the different
 /// costs of the new expression.
 struct Cost<'a>{
@@ -260,7 +262,6 @@ impl<'a> Cost<'a> {
 
     /// How close are we to the desired result (matching bits)
     fn hamming_distance(&self, a: &BigUint, b: &BigUint) -> u32 {
-        let diff = a ^ b;
         let a_h = a.hamming_weight();
         let b_h = b.hamming_weight();
         if a_h > b_h {
@@ -268,6 +269,7 @@ impl<'a> Cost<'a> {
         } else {
             b_h - a_h
         }
+        //let diff = a ^ b;
         //diff.hamming_weight()
     }
 
@@ -316,6 +318,11 @@ impl<'a> Cost<'a> {
             try!(execute_expr(&state, self.expr)).value().clone())
     }
 
+    /// Default cost for hamming
+    fn default_hamming(&self) -> f64 {
+        8f64 * ((self.width / 8) as f64)
+    }
+
     /// Calculate cost of this expression
     fn cost(&self) -> f64 {
         let mut cost: f64 = 0.0;
@@ -323,7 +330,11 @@ impl<'a> Cost<'a> {
         for &(ref res, ref io_set) in self.io_sets {
             let io_res = self.execute_once(io_set);
             if let Ok(io_res) = io_res {
-                cost += self.hamming_distance(res, &io_res).to_f64().unwrap();
+                cost += self.default_hamming().min(
+                    self.hamming_distance(res, &io_res).to_f64().unwrap());
+                if res != &io_res {
+                    cost += MISALIGN_PENALTY;
+                }
                 //cost += self.int_distance(res, &io_res);
             } else {
                 cost += self.crash_cost();
