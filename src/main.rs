@@ -37,9 +37,6 @@ mod test_stochastic {
     use num::bigint::ToBigUint;
     use std::collections::HashMap;
 
-    #[bench]
-    use test::{Bencher, black_box};
-
     use expr::Expr;
     use stochastic::{Stochastic};
 
@@ -340,10 +337,10 @@ fn main() {
     //     test_stochastic::test_sub_eax_1();
     // }
     //test_stochastic::test_popcnt();
-    test_work::push_rax();
+    //test_work::push_rax();
     //test_work::pop_rax();
     //test_work::popcnt_rax_rcx();
-    //test_work::mul_rcx();
+    test_work::mul_rcx();
     //test_stochastic::mul_rcx();
     //test_work::w_vaddps();
 }

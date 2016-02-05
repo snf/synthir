@@ -632,7 +632,7 @@ fn sample() -> Expr {
     Expr::Reg("EAX".to_owned(), 32)
 }
 
-#[bench]
+#[cfg(bench)]
 mod bench {
     use expr::Expr;
     use num::bigint::ToBigUint;
@@ -651,7 +651,7 @@ mod bench {
 
 }
 
-#[test]
+#[cfg(test)]
 mod test {
     use expr::Expr;
     use num::bigint::ToBigUint;
