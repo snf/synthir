@@ -171,22 +171,6 @@ impl ValueSamplerStatic for ConstSampler {
                 let curr = (curr + 1) % 3 == 0;
                 constants::gen_half(width, curr)
             },
-            // 7 ... 8 => {
-            //     if curr % 2 == 0 { BigUint::max(width) }
-            //     else { BigUint::zero() }
-            // },
-            // 9 ... 10 => {
-            //     if curr % 2 == 1 { BigUint::max(width) }
-            //     else { BigUint::zero() }
-            // },
-            // 11 ... 12 => {
-            //     if curr % 2 == 1 { 1.to_biguint().unwrap() }
-            //     else { 0.to_biguint().unwrap() }
-            // },
-            // 13 ... 14 => {
-            //     if curr % 2 == 1 { 2.to_biguint().unwrap() }
-            //     else { 1.to_biguint().unwrap() }
-            // },
             15 ... 16 => {
                 if curr % 2 == 1 { 3.to_biguint().unwrap() }
                 else { 2.to_biguint().unwrap() }
