@@ -138,7 +138,7 @@ macro_rules! for_one {
 }
 macro_rules! enum_and_list{
     ($e_name:ident, $c_name:ident, $($m:ident),+) => {
-        #[derive(Copy,Clone,Debug,PartialEq,Eq,Hash)]
+        #[derive(Copy,Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
         pub enum $e_name {
             $(
                 $m,

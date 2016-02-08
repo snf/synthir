@@ -8,6 +8,7 @@ use native::{Native, Opnd, Instruction};
 use definitions::{Definition, GenDefinition};
 use execution::{Execution, ExecutionRes, Dep};
 use stochastic::Stochastic;
+use templates::TemplateSearch;
 use utils::{LastCache};
 
 // XXX_ this file is probably competing with definition.rs for worst
@@ -525,22 +526,24 @@ impl<'a, T: Native> Work<'a, T> {
     }
 
 
-    /// Stochastic search of the expression
-    pub fn get_expr_stochastic(&self, ins: &Instruction,
-                               dep: &Dep,
-                               io_set: &IOSet<Dep, BigUint>)
-        -> Expr
+    /// Get all the Expr from an IOSet
+    fn get_expr_ioset(&self, io_set: &IOSet<Dep, BigUint>)
+                      -> Vec<Expr>
     {
-        let expr_inits: Vec<Expr> = io_set
+        io_set
             .iter()
             .flat_map(
                 |x| x.0
                     .keys()
                     .map(|k| self.dep_to_expr(k)))
-            .collect();
+            .collect()
+    }
 
-        let io_set_e: Vec<(BigUint, HashMap<Expr, BigUint>)> =
-            io_set
+    /// Order the io_set by a tuple of (result, HashMap<var, value>)
+    fn ioset_to_res_var_val(&self, io_set: &IOSet<Dep, BigUint>)
+                            -> Vec<(BigUint, HashMap<Expr, BigUint>)>
+    {
+        io_set
             .iter()
             .map(|&(ref h, ref v)| {
                 let mut hm = HashMap::new();
@@ -553,7 +556,17 @@ impl<'a, T: Native> Work<'a, T> {
                     .collect();
                 (v.clone(), hm)
             })
-            .collect();
+            .collect()
+    }
+
+    /// Stochastic search of the expression
+    fn get_expr_stochastic(&self, ins: &Instruction,
+                               dep: &Dep,
+                               io_set: &IOSet<Dep, BigUint>)
+        -> Expr
+    {
+        let expr_inits = self.get_expr_ioset(io_set);
+        let io_set_e = self.ioset_to_res_var_val(io_set);
 
         //println!("io_set_e: {:?}", io_set_e);
         let mut stoc = Stochastic::new(&expr_inits,
@@ -561,6 +574,21 @@ impl<'a, T: Native> Work<'a, T> {
                                        dep.get_bit_width());
         stoc.work();
         stoc.get_expr()
+    }
+
+    /// Template search of the expression
+    pub fn get_expr_template(&self, ins: &Instruction,
+                               dep: &Dep,
+                               io_set: &IOSet<Dep, BigUint>)
+        -> Vec<Expr>
+    {
+        let expr_inits = self.get_expr_ioset(io_set);
+        let io_set_e = self.ioset_to_res_var_val(io_set);
+
+        let template = TemplateSearch::new(&expr_inits,
+                                           &io_set_e,
+                                           dep.get_bit_width());
+        template.work()
     }
 
     /// Generate semantics for only one output
@@ -572,7 +600,11 @@ impl<'a, T: Native> Work<'a, T> {
         // We have 2 methods to get the Expr
         // 1) Use the templates
         // 2) Use the stochastic approach with the cost function
+        // 3) Use the mixed template + stochastic
         //Expr::empty()
+        let from_template = self.get_expr_template(ins, dep, io_set);
+        println!("from template: {:?}", from_template);
+
         const MIN_EXPRS: u32 = 1;
         let mut exprs = Vec::new();
         for i in 0 .. MIN_EXPRS {

@@ -10,14 +10,14 @@ pub type ILiteral = i16;
 
 pub type Name = String;
 
-#[derive(Copy,Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Copy,Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub enum FloatType {
     Single,
     Double,
     Fp80
 }
 
-#[derive(Copy,Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Copy,Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub enum ExprType {
     Float(FloatType),
     Int(u32)
@@ -34,7 +34,7 @@ impl ExprType {
 }
 
 /// Expressions allowed in our IR
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub enum Expr {
     // Basics
     Reg(Name, u32),

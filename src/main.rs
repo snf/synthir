@@ -10,6 +10,8 @@ extern crate libc;
 extern crate time;
 extern crate llvm_assemble;
 extern crate z3;
+extern crate itertools;
+extern crate permutohedron;
 extern crate synthir_execute as execute;
 
 extern crate test;
@@ -286,6 +288,24 @@ mod test_work {
         }
     }
 
+    pub fn cmp_rax_rbx() {
+
+        if let Some(ins) =
+            X86_64::disassemble(&[0x48, 0x39, 0xD8], 0x1000)
+        {
+            println!("ins: {:?}", ins);
+
+            let x86_64 = X86_64;
+            let work = Work::new(&x86_64);
+            let res = work.work_instruction(&ins);
+            println!("res: {:?}", res);
+
+        } else {
+            println!("failed disassembling");
+            return;
+        }
+    }
+
     pub fn mul_rcx() {
 
         if let Some(ins) =
@@ -340,7 +360,8 @@ fn main() {
     //test_work::push_rax();
     //test_work::pop_rax();
     //test_work::popcnt_rax_rcx();
-    test_work::mul_rcx();
+    //test_work::mul_rcx();
+    test_work::cmp_rax_rbx();
     //test_stochastic::mul_rcx();
     //test_work::w_vaddps();
 }
