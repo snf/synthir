@@ -381,10 +381,11 @@ fn execute_ite(b: &Value, e1: &Value, e2: &Value) -> Value {
         e2.clone()
     } else {
         // XXX_ I know...
-        //panic!("ITE first argument should be 1 bit")
-        e1.clone()
+        panic!("ITE first argument should be 1 bit")
+        //e1.clone()
     }
 }
+
 // XXX_ implement
 fn execute_cast(op: OpCast, et: ExprType, v: &Value) -> Result<Value,()> {
     let ty_w = et.get_int_width();

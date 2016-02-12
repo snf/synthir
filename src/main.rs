@@ -41,6 +41,7 @@ mod test_stochastic {
 
     use expr::Expr;
     use stochastic::{Stochastic};
+    use verify::equal_or_counter;
 
     pub fn test_popcnt() {
         let eax = Expr::Reg("EAX".to_owned(), 32);
@@ -77,9 +78,9 @@ mod test_stochastic {
             stoc.work();
             res.push(stoc.get_expr());
         }
-        println!("res: {:?}", res);
-        // let counter = equal_or_counter(&res[0], &res[1]);
-        // println!("counter: {:?}", counter);
+        println!("res: {:#?}", res);
+        let counter = equal_or_counter(&res[0], &res[1]);
+        println!("counter: {:#?}", counter);
     }
 }
 
@@ -356,12 +357,13 @@ fn main() {
     // for i in 0..2 {
     //     test_stochastic::test_sub_eax_1();
     // }
+    test_stochastic::test_sub_eax_1();
     //test_stochastic::test_popcnt();
     //test_work::push_rax();
     //test_work::pop_rax();
     //test_work::popcnt_rax_rcx();
     //test_work::mul_rcx();
-    test_work::cmp_rax_rbx();
+    //test_work::cmp_rax_rbx();
     //test_stochastic::mul_rcx();
     //test_work::w_vaddps();
 }

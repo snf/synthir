@@ -61,6 +61,8 @@ pub fn translate_ite<'a>(z3: &'a Z3Store<'a>, b: &Z3Ast, a1: &Z3Ast, a2: &Z3Ast)
 /// Translate BoolOp to SMT logic
 pub fn translate_boolop<'a>(z3: &'a Z3Store<'a>, op: OpBool, a1: &Z3Ast, a2: &Z3Ast) -> Z3Ast<'a> {
     let ctx = z3.z3();
+    // XXX_ convert to same width
+    //println!("sort1: {}, sort2: {}", a1.get_bv_width(), a2.get_bv_width());
     match op {
         OpBool::LT  => ctx.bvult(&a1, &a2),
         OpBool::LE  => ctx.bvule(&a1, &a2),
@@ -145,6 +147,14 @@ pub fn translate_int<'a>(z3: &'a Z3Store<'a>, a: i32) -> Z3Ast<'a> {
     ctx.mk_bv_const_i(a.to_i32().unwrap(), 32)
 }
 
+/// Translate bit extraction to SMT logic
+pub fn translate_bits<'a>(z3: &'a Z3Store<'a>, b1: u32, b2: u32, e: &Z3Ast)
+    -> Z3Ast<'a>
+{
+    let ctx = z3.z3();
+    ctx.extract(b2, b1, e)
+}
+
 /// Translate to SMT logic
 pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr) -> Z3Ast<'a> {
     use expr::Expr::*;
@@ -179,6 +189,12 @@ pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr) -> Z3Ast<'a> {
                           &translate(z3, &*eb),
                           &translate(z3, &*e1),
                           &translate(z3, &*e2)),
+        Bit(b, ref e) => translate_bits(z3,
+                                        b, b+1,
+                                        &translate(z3, &*e)),
+        Bits(b1, b2, ref e) => translate_bits(z3,
+                                              b1, b2,
+                                              &translate(z3, &*e)),
         _ => panic!(format!("not supported: {:?}", e))
     }
 }
@@ -206,10 +222,15 @@ pub fn equal_or_counter(e1: &Expr, e2: &Expr)
 {
     let z3 = Z3Store::new();
     let ast1 = translate(&z3, e1);
+    // XXX_ remove all these prints
+    println!("translation 1 done");
     let ast2 = translate(&z3, e2);
+    println!("translation 2 done");
     let ctx = z3.z3();
     let eq = ctx.eq(&ast1, &ast2);
+    println!("eq done");
     let model = ctx.check_and_get_model(&eq);
+    println!("model done");
     if model.is_valid() {
         None
     } else {
