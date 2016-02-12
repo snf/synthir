@@ -65,7 +65,7 @@ pub enum Expr {
     Cast(OpCast, ExprType, Box<Expr>),
     Bits(u32, u32, Box<Expr>),
     // Syntax sugar
-    Bit(u32, Box<Expr>)
+    Bit(u32, Box<Expr>) // := Bits(i, i, Box<Expr>)
 }
 
 #[allow(dead_code)]

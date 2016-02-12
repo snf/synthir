@@ -536,7 +536,7 @@ impl RandExprSampler {
             Bit(_, ref mut e1) | Bits(_, _, ref mut e1) => {
                 leaf_or_e!(e1, leafs);
             },
-            ITE(ref mut e1, ref mut e2, ref mut e3) => {
+            ITE(_, ref mut e2, ref mut e3) => {
                 if self.rng.gen::<bool>() {
                     leaf_or_e!(e2, leafs);
                     leaf_or_e!(e3, leafs);
@@ -550,6 +550,12 @@ impl RandExprSampler {
         new_e
     }
 
+    pub fn sample_boolexpr(&mut self) -> Expr {
+        Expr::BoolOp(self.sample_boolop(),
+                     Box::new(self.sample_ex()),
+                     Box::new(self.sample_ex()))
+    }
+
     pub fn sample_expr_w(&mut self, width: Option<u32>) -> Expr {
         let val = self.rng.gen_range(0,
                                      9 + OPLOGIC.len() + OPARITH.len() +
@@ -557,40 +563,40 @@ impl RandExprSampler {
 
         //let val = self.rng.gen_range(0, 10);
         // XXX_ avoiding generating Cast (should be 10 instead of 9)
-        let val = self.rng.gen_range(0, 9);
+        let val = self.rng.gen_range(0, 50);
         match val {
-            0 => self.sample_ex(),
-            1 => Expr::IInt(self.sample_literal()),
-            // 2 => Expr::ITE(Box::new(self.sample_ex()),
-            //                Box::new(self.sample_ex()),
-            //                Box::new(self.sample_ex())),
-            3 => {
+            0...7 => self.sample_ex(),
+            8...15 => Expr::IInt(self.sample_literal()),
+            16...23=> {
                 let e = self.sample_base();
                 let w_e = e.get_width();
                 let (bit1, bit2) = self.sample_bits(width, w_e);
                 Expr::Bits(bit1, bit2, Box::new(e))
             }
-            4 => {
+            24...27 => {
                 let e = self.sample_base();
                 let w = e.get_width();
                 let bit = self.sample_bit(w);
                 Expr::Bit(bit, Box::new(e))
             }
-            5 => Expr::ArithOp(self.sample_arithop(),
+            30...37 => Expr::ArithOp(self.sample_arithop(),
                                Box::new(self.sample_ex()),
                                Box::new(self.sample_ex()),
                                self.sample_ty(width)),
-            6 => Expr::LogicOp(self.sample_logicop(),
+            38...45 => Expr::LogicOp(self.sample_logicop(),
                                Box::new(self.sample_ex()),
                                Box::new(self.sample_ex())),
-            7 => Expr::UnOp(self.sample_unop(),
+            45...48 => Expr::UnOp(self.sample_unop(),
                             Box::new(self.sample_ex())),
-            8 => Expr::BoolOp(self.sample_boolop(),
-                              Box::new(self.sample_ex()),
-                              Box::new(self.sample_ex())),
-            9 => Expr::Cast(self.sample_castop(),
-                            self.sample_ty(width),
-                            Box::new(self.sample_ex())),
+            49 => Expr::ITE(Box::new(self.sample_boolexpr()),
+                           Box::new(self.sample_ex()),
+                           Box::new(self.sample_ex())),
+            // 8 => Expr::BoolOp(self.sample_boolop(),
+            //                   Box::new(self.sample_ex()),
+            //                   Box::new(self.sample_ex())),
+            // 9 => Expr::Cast(self.sample_castop(),
+            //                 self.sample_ty(width),
+            //                 Box::new(self.sample_ex())),
             // XXX_ actually calculate this again!
             //_ => unreachable!()
             _ => self.sample_ex()

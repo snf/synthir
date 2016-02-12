@@ -429,7 +429,7 @@ impl<'a> Transform<'a> {
                 *e1 = e2.clone();
                 *e2 = e1_t;
             }
-            ITE(ref mut e1, ref mut e2, ref mut e3) => {
+            ITE(_, ref mut e2, ref mut e3) => {
                     let e2_t = e2.clone();
                     *e2 = e3.clone();
                     *e3 = e2_t;
@@ -463,6 +463,18 @@ impl<'a> Transform<'a> {
             }
             _ => panic!(format!("replace op supported: {:?}", e))
         };
+    }
+
+    fn transform_boolop(&mut self, e: &mut Expr) {
+        use expr::Expr::*;
+        use self::Mov::*;
+
+        match self.trans {
+            Remove | Insert | ReplaceExpr
+                => *e = self.sampler.sample_boolexpr(),
+            Swap => self.transform_swap(e),
+            ReplaceOp => self.transform_replace_op(e),
+        }
     }
 
     fn transform_op3(&mut self, e: &mut Expr, curr: usize)
@@ -512,6 +524,9 @@ impl<'a> Transform<'a> {
                 }
                 _ => panic!(format!("not supported/implement me: {:?}", e))
             }
+        }
+        else if this && e.is_boolop() {
+            self.transform_boolop(e);
         }
         else if this && self.trans == Remove {
             self.transform_remove(e);

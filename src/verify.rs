@@ -1,6 +1,7 @@
 use num::bigint::BigUint;
 use num::traits::{ToPrimitive};
 use std::cell::RefCell;
+use std::cmp;
 use std::collections::HashMap;
 use std::string::ToString;
 
@@ -51,18 +52,35 @@ impl<'a> Z3Store<'a> {
 /// Translate ITE to SMT logic
 pub fn translate_ite<'a>(z3: &'a Z3Store<'a>, b: &Z3Ast, a1: &Z3Ast, a2: &Z3Ast) -> Z3Ast<'a> {
     let ctx = z3.z3();
+
+    let (a1, a2) = if a1.get_bv_width() != a2.get_bv_width() {
+        let max = cmp::max(a1.get_bv_width(), a2.get_bv_width());
+        (adjust_width(z3, a1, max, false),
+         adjust_width(z3, a2, max, false))
+    } else {
+        (a1.clone(), a2.clone())
+    };
+
+    return ctx.ite(b, &a1, &a2);
     // Convert first comparision to bool
-    let one  = ctx.mk_bv_const_i(1, 32);
-    let and1 = ctx.bvand(b, &one);
-    let eq1  = ctx.eq(&and1, &one);
-    ctx.ite(&eq1, a1, a2)
+    // XXX_ clean
+    // let one  = ctx.mk_bv_const_i(1, 32);
+    // let and1 = ctx.bvand(b, &one);
+    // let eq1  = ctx.eq(&and1, &one);
+    // ctx.ite(&eq1, a1, a2)
 }
 
 /// Translate BoolOp to SMT logic
 pub fn translate_boolop<'a>(z3: &'a Z3Store<'a>, op: OpBool, a1: &Z3Ast, a2: &Z3Ast) -> Z3Ast<'a> {
     let ctx = z3.z3();
-    // XXX_ convert to same width
-    //println!("sort1: {}, sort2: {}", a1.get_bv_width(), a2.get_bv_width());
+    let (a1, a2) = if a1.get_bv_width() != a2.get_bv_width() {
+        let max = cmp::max(a1.get_bv_width(), a2.get_bv_width());
+        (adjust_width(z3, a1, max, false),
+         adjust_width(z3, a2, max, false))
+    } else {
+        (a1.clone(), a2.clone())
+    };
+
     match op {
         OpBool::LT  => ctx.bvult(&a1, &a2),
         OpBool::LE  => ctx.bvule(&a1, &a2),
@@ -88,6 +106,13 @@ pub fn translate_unop<'a>(z3: &'a Z3Store<'a>, op: OpUnary, a: &Z3Ast) -> Z3Ast<
 /// Translate LogicOp to SMT logic
 pub fn translate_logicop<'a>(z3: &'a Z3Store<'a>, op: OpLogic, a1: &Z3Ast, a2: &Z3Ast) -> Z3Ast<'a> {
     let ctx = z3.z3();
+    let (a1, a2) = if a1.get_bv_width() != a2.get_bv_width() {
+        let max = cmp::max(a1.get_bv_width(), a2.get_bv_width());
+        (adjust_width(z3, a1, max, false),
+         adjust_width(z3, a2, max, false))
+    } else {
+        (a1.clone(), a2.clone())
+    };
     match op {
         OpLogic::And => ctx.bvand(&a1, &a2),
         OpLogic::Xor => ctx.bvxor(&a1, &a2),
@@ -97,31 +122,49 @@ pub fn translate_logicop<'a>(z3: &'a Z3Store<'a>, op: OpLogic, a1: &Z3Ast, a2: &
     }
 }
 
+/// Adjust width
+pub fn adjust_width<'a>(z3: &'a Z3Store<'a>, a: &Z3Ast,
+                        width: u32, sign_ext: bool) -> Z3Ast<'a>
+{
+    if width > a.get_bv_width() {
+        if sign_ext {
+            z3.z3().sign_ext(width - a.get_bv_width(), a)
+        } else {
+            z3.z3().zero_ext(width - a.get_bv_width(), a)
+        }
+    } else if width < a.get_bv_width() {
+        z3.z3().extract(width - 1, 0, a)
+    } else {
+        z3.z3().clone_ast(a)
+    }
+}
+
 /// Translate ArithOp to SMT logic
 pub fn translate_arithop<'a>(z3: &'a Z3Store<'a>, op: OpArith, a1: &Z3Ast, a2: &Z3Ast, ty: ExprType) -> Z3Ast<'a> {
     let ctx = z3.z3();
     // First extend BitVectors to match result
+    // println!("adjusting width");
     let (a1p, a2p) = match ty {
         ExprType::Int(i) => {
             match op {
                 // If using signed operations sign extend
                 OpArith::SDiv | OpArith::SMod | OpArith::ARShift =>
-                    (a1.sign_ext(i - a1.get_bv_width()),
-                     a2.sign_ext(i - a2.get_bv_width()))
+                    (adjust_width(z3, a1, i, true),
+                     adjust_width(z3, a2, i, true))
                     ,
                 _ =>
-                    (a1.zero_ext(i - a1.get_bv_width()),
-                     a2.zero_ext(i - a2.get_bv_width()))
+                    (adjust_width(z3, a1, i, false),
+                     adjust_width(z3, a2, i, false))
             }
         },
         _ => panic!("not supported")
     };
-    let res = match op {
+    match op {
         OpArith::Add => ctx.bvadd(&a1p, &a2p),
         OpArith::Sub => ctx.bvsub(&a1p, &a2p),
         OpArith::Mul => ctx.bvmul(&a1p, &a2p),
         OpArith::Div => ctx.bvudiv(&a1p, &a2p),
-        OpArith::SDiv => ctx.bvsdiv(&a1, &a2p),
+        OpArith::SDiv => ctx.bvsdiv(&a1p, &a2p),
         // URem = UMod
         OpArith::Mod => ctx.bvurem(&a1p, &a2p),
         OpArith::SMod => ctx.bvsmod(&a1p, &a2p),
@@ -129,8 +172,7 @@ pub fn translate_arithop<'a>(z3: &'a Z3Store<'a>, op: OpArith, a1: &Z3Ast, a2: &
         OpArith::ALShift => ctx.bvshl(&a1p, &a2p),
         // XXX_ MUL with res > a1 or a2, how to do it?,
         // signed?
-    };
-    res
+    }
 }
 
 /// Translate BigUint to SMT logic
@@ -148,17 +190,23 @@ pub fn translate_int<'a>(z3: &'a Z3Store<'a>, a: i32) -> Z3Ast<'a> {
 }
 
 /// Translate bit extraction to SMT logic
-pub fn translate_bits<'a>(z3: &'a Z3Store<'a>, b1: u32, b2: u32, e: &Z3Ast)
+pub fn translate_bits<'a>(z3: &'a Z3Store<'a>, high: u32, low: u32, e: &Z3Ast)
     -> Z3Ast<'a>
 {
     let ctx = z3.z3();
-    ctx.extract(b2, b1, e)
+    let e = if high > e.get_bv_width() {
+        adjust_width(z3, e, high + 1, false)
+    } else {
+        e.clone()
+    };
+    ctx.extract(high, low, &e)
 }
 
 /// Translate to SMT logic
 pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr) -> Z3Ast<'a> {
     use expr::Expr::*;
-    match *e {
+    //println!("processing: {:?}", e);
+    let res = match *e {
         Reg(_, _) => z3.get_expr(e),
         // XXX_ check
         Int(ref i) => translate_biguint(z3, i),
@@ -190,13 +238,16 @@ pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr) -> Z3Ast<'a> {
                           &translate(z3, &*e1),
                           &translate(z3, &*e2)),
         Bit(b, ref e) => translate_bits(z3,
-                                        b, b+1,
+                                        b, b,
                                         &translate(z3, &*e)),
-        Bits(b1, b2, ref e) => translate_bits(z3,
-                                              b1, b2,
+        Bits(high, low, ref e) => translate_bits(z3,
+                                              high, low,
                                               &translate(z3, &*e)),
         _ => panic!(format!("not supported: {:?}", e))
-    }
+    };
+    //println!("res: {}", res);
+    //println!("res_width: {:?}", res.get_bv_width());
+    res
 }
 
 /// Check if e1 and e1 are equal
@@ -222,15 +273,21 @@ pub fn equal_or_counter(e1: &Expr, e2: &Expr)
 {
     let z3 = Z3Store::new();
     let ast1 = translate(&z3, e1);
-    // XXX_ remove all these prints
-    println!("translation 1 done");
     let ast2 = translate(&z3, e2);
-    println!("translation 2 done");
     let ctx = z3.z3();
+
+    // Adjust both to the same bit width
+    // XXX_ both should be adjusted to register width instead
+    let (ast1, ast2) = if ast1.get_bv_width() != ast2.get_bv_width() {
+        let max = cmp::max(ast1.get_bv_width(), ast2.get_bv_width());
+        (adjust_width(&z3, &ast1, max, false),
+         adjust_width(&z3, &ast2, max, false))
+    } else {
+        (ast1, ast2)
+    };
+
     let eq = ctx.eq(&ast1, &ast2);
-    println!("eq done");
     let model = ctx.check_and_get_model(&eq);
-    println!("model done");
     if model.is_valid() {
         None
     } else {

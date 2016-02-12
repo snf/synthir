@@ -82,6 +82,18 @@ mod test_stochastic {
         let counter = equal_or_counter(&res[0], &res[1]);
         println!("counter: {:#?}", counter);
     }
+
+    pub fn test_equal_expr() {
+        use expr::{ExprType};
+        use op::OpArith;
+        let a = Expr::ArithOp(OpArith::SDiv,
+                              Box::new(Expr::Int(10.to_biguint().unwrap())),
+                              Box::new(Expr::Int(10.to_biguint().unwrap())),
+                              ExprType::Int(1));
+        let b = a.clone();
+        let counter = equal_or_counter(&a, &b);
+        println!("counter: {:#?}", counter);
+    }
 }
 
 // When you don't trust your programs, you verify them exhaustively
@@ -357,11 +369,12 @@ fn main() {
     // for i in 0..2 {
     //     test_stochastic::test_sub_eax_1();
     // }
-    test_stochastic::test_sub_eax_1();
+    //test_stochastic::test_sub_eax_1();
+    //test_stochastic::test_equal_expr();
     //test_stochastic::test_popcnt();
     //test_work::push_rax();
     //test_work::pop_rax();
-    //test_work::popcnt_rax_rcx();
+    test_work::popcnt_rax_rcx();
     //test_work::mul_rcx();
     //test_work::cmp_rax_rbx();
     //test_stochastic::mul_rcx();

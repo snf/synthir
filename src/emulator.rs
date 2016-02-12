@@ -411,15 +411,15 @@ fn execute_cast(op: OpCast, et: ExprType, v: &Value) -> Result<Value,()> {
     }
 }
 
-pub fn execute_bits(l1: u32, l2: u32, v: &Value) -> Result<Value,()> {
-    if l1 > v.width() || l2 > v.width() || l1 > l2 {
+pub fn execute_bits(high: u32, low: u32, v: &Value) -> Result<Value,()> {
+    if high > v.width() || low > v.width() || low > high {
         return Err(());
     }
-    let new_width = l2 - l1;
+    let new_width = high - low + 1;
     let mask_bits = (BigUint::one() << (new_width as usize)) - BigUint::one();
-    let mask = mask_bits << (l1 as usize);
+    let mask = mask_bits << (low as usize);
     let val = &v.value & mask;
-    Ok(Value::new(val >> (l1 as usize), new_width))
+    Ok(Value::new(val >> (low as usize), new_width))
 }
 
 pub fn execute_expr(state: &State, e: &Expr) -> Result<Value,()> {
@@ -457,10 +457,10 @@ pub fn execute_expr(state: &State, e: &Expr) -> Result<Value,()> {
         Cast(o, ref et, ref e) => try!(
             execute_cast(o, *et,
                          &try!(execute_expr(state, &*e)))),
-        Bits(l1, l2, ref e) => try!(
-            execute_bits(l1, l2, &try!(execute_expr(state, &*e)))),
+        Bits(high, low, ref e) => try!(
+            execute_bits(high, low, &try!(execute_expr(state, &*e)))),
         Bit(b, ref e) => try!(
-            execute_bits(b, b+1, &try!(execute_expr(state, &*e)))),
+            execute_bits(b, b, &try!(execute_expr(state, &*e)))),
         _ => panic!(format!("not supported: {:?}", e))
     };
     Ok(res)
