@@ -110,9 +110,21 @@ impl Expr {
             _ => false,
         }
     }
+    pub fn is_boolop(&self) -> bool {
+        match *self {
+            BoolOp(_, _, _) => true,
+            _ => false,
+        }
+    }
     pub fn is_cast(&self) -> bool {
         match *self {
             Cast(_, _, _) => true,
+            _ => false,
+        }
+    }
+    pub fn is_ite(&self) -> bool {
+        match *self {
+            ITE(_, _, _) => true,
             _ => false,
         }
     }
