@@ -12,7 +12,7 @@ use itertools::Itertools;
 
 /// Trait required for becoming a Template
 trait Template2  {
-    fn exec(&[&Expr]) -> Vec<Expr>;
+    fn exec(&[&Expr], u32) -> Vec<Expr>;
     fn args() -> u32;
 }
 
@@ -27,8 +27,7 @@ struct ParityTemplate;
 
 impl ParityTemplate {
     /// Mod(Add(Bit(0), Add(Bit(1), Add(Bit....))), 2)
-    fn parity_flag(e: &Expr) -> Expr {
-        let width = e.get_width().unwrap();
+    fn parity_flag(e: &Expr, width: u32) -> Expr {
         let mut expr_builder = ExprBuilder::new();
         for i in 0..width {
             let bit = Expr::Bit(i, Box::new(e.clone()));
@@ -47,11 +46,22 @@ impl ParityTemplate {
                 );
         expr_builder.finalize()
     }
+    fn reverse_parity_flag(e: &Expr, width: u32) -> Expr {
+        let e = Self::parity_flag(e, width);
+        Expr::ArithOp(OpArith::Sub,
+                      Box::new(Expr::Int(BigUint::one())),
+                      Box::new(e),
+                      ExprType::Int(1))
+    }
 }
 
 impl Template2 for ParityTemplate {
-    fn exec(e: &[&Expr]) -> Vec<Expr> {
-        vec![Self::parity_flag(e[0])]
+    fn exec(e: &[&Expr], width: u32) -> Vec<Expr> {
+        [1, 4, 8, 16, 32, 64, 128, 256]
+            .iter()
+            .flat_map(|w| vec![Self::parity_flag(e[0], *w),
+                               Self::reverse_parity_flag(e[0], *w)])
+            .collect()
     }
 
     fn args() -> u32 { 1 }
@@ -66,7 +76,7 @@ impl CarryTemplate {
 }
 
 impl Template2 for CarryTemplate {
-    fn exec(e: &[&Expr]) -> Vec<Expr> {
+    fn exec(e: &[&Expr], width: u32) -> Vec<Expr> {
         Self::carry_flag(e[0], e[1])
     }
 
@@ -76,22 +86,23 @@ impl Template2 for CarryTemplate {
 struct SignTemplate;
 
 impl SignTemplate {
-    fn sign_flag(e: &Expr) -> Expr {
-        let width = e.get_width().unwrap();
+    fn sign_flag(e: &Expr, width: u32) -> Expr {
+        let width = {
+            match e.get_width() {
+                Some(w) => w,
+                None => width
+            }
+        };
         let mask = BigUint::one() << ((width as usize) - 1);
-        Expr::BoolOp(
-            OpBool::NEQ,
-            Box::new(Expr::LogicOp(OpLogic::And,
-                                   Box::new(Expr::Int(mask.to_biguint().unwrap())),
-                                   Box::new(e.clone()))),
-            Box::new(Expr::Int(BigUint::zero())),
-        )
+        Expr::Bit(
+            width - 1,
+            Box::new(e.clone()))
     }
 }
 
 impl Template2 for SignTemplate {
-    fn exec(e: &[&Expr]) -> Vec<Expr> {
-        vec![Self::sign_flag(e[0])]
+    fn exec(e: &[&Expr], width: u32) -> Vec<Expr> {
+        vec![Self::sign_flag(e[0], width)]
     }
 
     fn args() -> u32 { 1 }
@@ -100,8 +111,7 @@ impl Template2 for SignTemplate {
 struct ZeroTemplate;
 
 impl ZeroTemplate {
-    fn zero_flag(e: &Expr) -> Expr {
-        let width = e.get_width().unwrap();
+    fn zero_flag(e: &Expr, width: u32) -> Expr {
         let mask = BigUint::one() << ((width as usize) - 1);
         Expr::BoolOp(
             OpBool::EQ,
@@ -112,8 +122,8 @@ impl ZeroTemplate {
 }
 
 impl Template2 for ZeroTemplate {
-    fn exec(e: &[&Expr]) -> Vec<Expr> {
-        vec![Self::zero_flag(e[0])]
+    fn exec(e: &[&Expr], width: u32) -> Vec<Expr> {
+        vec![Self::zero_flag(e[0], width)]
     }
 
     fn args() -> u32 { 1 }
@@ -131,20 +141,20 @@ impl Template2 for ZeroTemplate {
         vec![]
     }
 
-pub struct TemplateSearch {
-    args: Vec<Expr>,
-    io_sets: Vec<(BigUint,HashMap<Expr, BigUint>)>,
+pub struct TemplateSearch<'a> {
+    args: &'a[&'a Expr],
+    io_sets: &'a [(BigUint,HashMap<Expr, BigUint>)],
     expr_width: u32
 }
 
-impl TemplateSearch {
-    pub fn new(args: &[Expr],
-               io_sets: &[(BigUint,HashMap<Expr, BigUint>)],
+impl<'a> TemplateSearch<'a> {
+    pub fn new(args: &'a [&'a Expr],
+               io_sets: &'a [(BigUint,HashMap<Expr, BigUint>)],
                expr_width: u32)
-               -> TemplateSearch {
+               -> TemplateSearch<'a> {
         TemplateSearch {
-            args: args.to_vec(),
-            io_sets: io_sets.to_vec(),
+            args: args,
+            io_sets: io_sets,
             expr_width: expr_width
         }
     }
@@ -164,7 +174,7 @@ impl TemplateSearch {
     /// Execute all the I/O sets for an expression and return true if
     /// the expected outputs match with the obtained ones
     fn execute_expected(&self, e: &Expr) -> bool {
-        for &(ref expected, ref io_set) in &self.io_sets {
+        for &(ref expected, ref io_set) in self.io_sets {
             if let Ok(res) = self.execute_once(e, io_set) {
                 if &res == expected {
                     continue;
@@ -184,7 +194,9 @@ impl TemplateSearch {
     {
         // Generate all the possible orders of combinations of the arguments
         let mut all = Vec::new();
-        for combination in self.args.iter().combinations_n(T::args() as usize) {
+        for combination in self.args.iter()
+            .cloned().combinations_n(T::args() as usize)
+        {
             let mut comb = combination.to_vec();
             all.push(comb.clone());
             while (comb).next_permutation() {
@@ -196,7 +208,7 @@ impl TemplateSearch {
         // execution tests
         let mut res = Vec::new();
         for exprs in &all {
-            T::exec(exprs)
+            T::exec(exprs, self.expr_width)
                 .iter()
                 .filter(|&e| self.execute_expected(e))
                 .inspect(|&e| res.push(e.clone()))

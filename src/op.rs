@@ -1,4 +1,3 @@
-//use rand::distributions::Sample;
 use rand::{Rand, Rng};
 
 enum_and_list!(OpArith, OPARITH,
@@ -20,10 +19,4 @@ pub enum AnyOp {
     Arith(OpArith),
     Logic(OpLogic),
 
-}
-
-#[test]
-fn oparith_sample() {
-    let mut rng = thread_rng();
-    let val = OpArith::rand(&mut rng);
 }

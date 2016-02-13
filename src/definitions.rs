@@ -602,6 +602,7 @@ pub trait GenDefinition {
 // Tests
 #[test]
 fn test_def_reg_value_little() {
+    use num::bigint::ToBigUint;
     let mut regs = HashMap::new();
     let mut sub_regs = HashMap::new();
     regs.insert("EAX",

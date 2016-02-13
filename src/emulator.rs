@@ -19,9 +19,12 @@ impl<'a> State<'a> {
             values: map
         }
     }
-    pub fn get_expr_value(&self, e: &Expr) -> Value {
+    pub fn get_expr_value(&self, e: &Expr) -> Result<Value, ()> {
         let width = e.get_width().unwrap();
-        Value::new(self.values.get(e).unwrap().clone(), width)
+        match self.values.get(e) {
+            Some(e) => Ok(Value::new(e.clone(), width)),
+            None => Err(())
+        }
     }
 }
 
@@ -427,11 +430,11 @@ pub fn execute_bits(high: u32, low: u32, v: &Value) -> Result<Value,()> {
 
 pub fn execute_expr(state: &State, e: &Expr) -> Result<Value,()> {
     let res = match *e {
-        Reg(ref n, _) => state.get_expr_value(e),
+        Reg(ref n, _) => try!(state.get_expr_value(e)),
         // XXX_ implement me, but I have the feeling that it should be
         // avoided at all cost and only found during dependency.
         Deref(ref e, _) => // try!(execute_expr(state, &*e)),
-            state.get_expr_value(e),
+            try!(state.get_expr_value(e)),
         // XXX_ this one should be good to depend on the width of the
         // last expression, so for example if it's -1 for an Int(8)
         // type, then it will go to 0xff, for Int(16): 0xFFff, etc.
@@ -690,37 +693,37 @@ mod tests {
     #[test]
     fn test_Bits_ok1(){
         let v = Value {width: 32, value: 0xff0.to_biguint().unwrap() };
-        let vres = execute_bits(8, 16, &v);
+        let vres = execute_bits(15, 8, &v);
         assert_eq!(vres.unwrap().value, 0xf.to_biguint().unwrap());
     }
     #[test]
     fn test_Bits_ok2(){
         let v = Value {width: 32, value: 0x70000.to_biguint().unwrap() };
-        let vres = execute_bits(16, 24, &v);
+        let vres = execute_bits(23, 16, &v);
         assert_eq!(vres.unwrap().value, 0x7.to_biguint().unwrap());
     }
     #[test]
     fn test_Bits_ok3(){
         let v = Value {width: 32, value: 0x70000.to_biguint().unwrap() };
-        let vres = execute_bits(24, 32, &v);
+        let vres = execute_bits(31, 24, &v);
         assert_eq!(vres.unwrap().value, 0.to_biguint().unwrap());
     }
     #[test]
     fn test_Bits_ok4(){
         let v = Value {width: 32, value: 0xffFF_ffFFu32.to_biguint().unwrap() };
-        let vres = execute_bits(0, 32, &v);
+        let vres = execute_bits(31, 0, &v);
         assert_eq!(vres.unwrap().value, 0xffFF_ffFFu32.to_biguint().unwrap());
     }
     #[test]
     fn test_Bits_err1(){
         let v = Value {width: 32, value: 0x70000.to_biguint().unwrap() };
-        let vres = execute_bits(32, 36, &v);
+        let vres = execute_bits(32, 35, &v);
         assert_eq!(vres.is_err(), true);
     }
     #[test]
     fn test_Bits_err2(){
         let v = Value {width: 32, value: 0x70000.to_biguint().unwrap() };
-        let vres = execute_bits(8, 4, &v);
+        let vres = execute_bits(4, 7, &v);
         assert_eq!(vres.is_err(), true);
     }
     #[test]

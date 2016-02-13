@@ -572,17 +572,24 @@ impl<'a, T: Native> Work<'a, T> {
         let mut stoc = Stochastic::new(&expr_inits,
                                        &io_set_e,
                                        dep.get_bit_width());
+        stoc.set_max_secs(20.0);
         stoc.work();
         stoc.get_expr()
     }
 
     /// Template search of the expression
-    pub fn get_expr_template(&self, ins: &Instruction,
-                               dep: &Dep,
-                               io_set: &IOSet<Dep, BigUint>)
-        -> Vec<Expr>
+    fn get_expr_template(&self,
+                         ins: &Instruction,
+                         dep: &Dep,
+                         io_set: &IOSet<Dep, BigUint>,
+                         others: &[&Expr])
+                         -> Vec<Expr>
     {
-        let expr_inits = self.get_expr_ioset(io_set);
+        let expr_inits_v = self.get_expr_ioset(io_set);
+        let mut expr_inits: Vec<&Expr> =
+            expr_inits_v.iter().collect();
+        expr_inits.extend_from_slice(others);
+
         let io_set_e = self.ioset_to_res_var_val(io_set);
 
         let template = TemplateSearch::new(&expr_inits,
@@ -591,18 +598,21 @@ impl<'a, T: Native> Work<'a, T> {
         template.work()
     }
 
-    /// Generate semantics for only one output
-    pub fn gen_expr_from_io_set(&self, ins: &Instruction,
-                                     dep: &Dep,
-                                     io_set: &IOSet<Dep, BigUint>)
-                                -> Expr
+    // pub type IOSet<D, Val> = Vec<(HashMap<D, Val>, Val)>;
+    // pub type IOSets<D, Val> = HashMap<D, IOSet<D, Val>>;
+
+    /// Synthetize the Expr store in the Expr
+    pub fn synthetize(&self, ins: &Instruction,
+                      dep: &Dep,
+                      io_set: &IOSet<Dep, BigUint>,
+                      others: &[&Expr])
+                      -> Expr
     {
-        // We have 2 methods to get the Expr
         // 1) Use the templates
         // 2) Use the stochastic approach with the cost function
         // 3) Use the mixed template + stochastic
         //Expr::empty()
-        let from_template = self.get_expr_template(ins, dep, io_set);
+        let from_template = self.get_expr_template(ins, dep, io_set, others);
         println!("from template: {:?}", from_template);
 
         const MIN_EXPRS: u32 = 1;
@@ -612,18 +622,7 @@ impl<'a, T: Native> Work<'a, T> {
             exprs.push(new_e);
         }
         exprs.remove(0)
-    }
-
-    // pub type IOSet<D, Val> = Vec<(HashMap<D, Val>, Val)>;
-    // pub type IOSets<D, Val> = HashMap<D, IOSet<D, Val>>;
-
-    pub fn get_expressions(&self, ins: &Instruction,
-                           dep: &Dep,
-                           io_set: &IOSet<Dep, BigUint>)
-                           -> Expr
-    {
-        self.gen_expr_from_io_set(ins, dep, io_set);
-        Expr::NoOp
+        //Expr::NoOp
     }
 
     pub fn work_instruction(&self, ins: &Instruction)
@@ -665,7 +664,10 @@ impl<'a, T: Native> Work<'a, T> {
         let mut progs = HashMap::new();
         for (dep, io_set) in io_sets_vec {
             println!("[+] Working Expr for {:?}", dep);
-            let exprs = self.get_expressions(&n_ins, &dep, &io_set);
+            let exprs = {
+                let others: Vec<&Expr> = progs.values().collect();
+                self.synthetize(&n_ins, &dep, &io_set, &others)
+            };
             progs.insert(self.dep_to_expr(&dep), exprs);
         }
         println!("Programs: {:#?}", progs);
