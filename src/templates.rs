@@ -200,7 +200,9 @@ impl<'a> TemplateSearch<'a> {
             let mut comb = combination.to_vec();
             all.push(comb.clone());
             while (comb).next_permutation() {
-                all.push(comb.clone());
+                if !all.contains(&comb) {
+                    all.push(comb.clone());
+                }
             }
         }
 
@@ -223,7 +225,7 @@ impl<'a> TemplateSearch<'a> {
         macro_rules! exec_for{
             ($res:expr, $($T:ident),*) => (
                 $(
-                    println!("template: {}", stringify!($T));
+                    //println!("template: {}", stringify!($T));
                     $res.append(&mut self.try_template::<$T>());
                 )*
             )
