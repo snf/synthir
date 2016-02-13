@@ -42,9 +42,8 @@ pub struct Stochastic {
     expr_sampler: RandExprSampler,
     moves_weight: HashMap<Mov, u32>,
     expr_width: u32,
-    // XXX_ ADDME
-    // max_secs: f64,
-    // max_tries: u64
+    max_secs: f64,
+    max_tries: u64,
 }
 
 impl Stochastic {
@@ -68,8 +67,15 @@ impl Stochastic {
             rng: thread_rng(),
             expr_sampler: RandExprSampler::new(args),
             moves_weight: moves,
-            expr_width: expr_width
+            expr_width: expr_width,
+            max_secs: MAX_SECS,
+            max_tries: MAX_TRIES
         }
+    }
+
+    /// Adjust the max amount of seconds it must run
+    pub fn set_max_secs(&mut self, max_secs: f64) {
+        self.max_secs = max_secs;
     }
 
     /// Calculate the new cost of the expression
@@ -164,11 +170,11 @@ impl Stochastic {
                     last_tries = tries;
                 }
                 // Break if max tries
-                if tries > MAX_TRIES {
+                if tries > self.max_tries {
                     break;
                 }
                 // Break if we reached the limit
-                if now > (MAX_SECS + start) {
+                if now > (self.max_secs + start) {
                     break;
                 }
             }
