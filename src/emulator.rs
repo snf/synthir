@@ -122,6 +122,9 @@ impl Value {
         let size_mask = (BigUint::one() << (width as usize)) - BigUint::one();
         Value { value: value & size_mask, width: width }
     }
+    pub fn new_unchecked(value: BigUint, width: u32) -> Value {
+        Value { value: value, width: width }
+    }
     pub fn from_int(value: i32, width: u32) -> Value {
         let abs_value = value.abs();
         let val = Value::new(abs_value.to_biguint().unwrap(), width);
