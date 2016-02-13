@@ -654,9 +654,16 @@ impl<'a, T: Native> Work<'a, T> {
 
             }).count();
 
+        // First sort the pairs by expressions that are bigger so
+        // flags are calculated at the end
+        let mut io_sets_vec: Vec<(&Dep, &IOSet<Dep, BigUint>)> =
+            io_sets.iter().map(|(a, b)| (a, b)).collect();
+         io_sets_vec.sort_by(|a, b| a.0.get_bit_width()
+                            .cmp(&b.0.get_bit_width()).reverse());
+
         // Synthetize the expressions for each dep
         let mut progs = HashMap::new();
-        for (dep, io_set) in io_sets {
+        for (dep, io_set) in io_sets_vec {
             println!("[+] Working Expr for {:?}", dep);
             let exprs = self.get_expressions(&n_ins, &dep, &io_set);
             progs.insert(self.dep_to_expr(&dep), exprs);
