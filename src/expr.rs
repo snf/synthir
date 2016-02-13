@@ -306,58 +306,63 @@ pub enum EType {
 /// Points in the Expr tree
 #[derive(Debug)]
 pub struct EPoints {
-    points: HashMap<EType, Vec<Vec<u8>>>,
-    pos: Vec<u8>
+    pos: Vec<u8>,
+    op: Vec<Vec<u8>>,
+    expr: Vec<Vec<u8>>,
+    ty: Vec<Vec<u8>>,
+    width: Vec<Vec<u8>>,
+    bit: Vec<Vec<u8>>,
+    bin: Vec<Vec<u8>>,
+    dep: Vec<Vec<u8>>,
+    cnst: Vec<Vec<u8>>,
 }
+
 impl EPoints {
     pub fn new() -> EPoints {
         use self::EType::*;
 
-        let mut points = HashMap::new();
-        points.insert(Op, Vec::new());
-        points.insert(Expr, Vec::new());
-        points.insert(Type, Vec::new());
-        points.insert(Width, Vec::new());
-        points.insert(Bit, Vec::new());
-        points.insert(Bin, Vec::new());
-        points.insert(Dep, Vec::new());
-        points.insert(Const, Vec::new());
-
         EPoints {
-            points: points,
-            pos: Vec::new()
+            pos: Vec::with_capacity(50),
+            op: Vec::with_capacity(50),
+            expr: Vec::with_capacity(50),
+            ty: Vec::with_capacity(50),
+            width: Vec::with_capacity(50),
+            bit: Vec::with_capacity(50),
+            bin: Vec::with_capacity(50),
+            dep: Vec::with_capacity(50),
+            cnst: Vec::with_capacity(50)
         }
     }
 
     pub fn get_expr(&self) -> &[Vec<u8>] {
-        self.points.get(&EType::Expr).unwrap()
+        &self.expr
     }
     pub fn get_op(&self) -> &[Vec<u8>] {
-        self.points.get(&EType::Op).unwrap()
+        &self.op
     }
     pub fn get_bin(&self) -> &[Vec<u8>] {
-        self.points.get(&EType::Bin).unwrap()
+        &self.bin
     }
     pub fn insert_expr(&mut self) {
-        self.points.get_mut(&EType::Expr).unwrap().push(self.pos.to_vec())
+        self.expr.push(self.pos.to_vec())
     }
     pub fn insert_op(&mut self) {
-        self.points.get_mut(&EType::Op).unwrap().push(self.pos.to_vec())
+        self.op.push(self.pos.to_vec())
     }
     pub fn insert_dep(&mut self) {
-        self.points.get_mut(&EType::Dep).unwrap().push(self.pos.to_vec())
+        self.dep.push(self.pos.to_vec())
     }
     pub fn insert_ty(&mut self) {
-        self.points.get_mut(&EType::Type).unwrap().push(self.pos.to_vec())
+        self.ty.push(self.pos.to_vec())
     }
     pub fn insert_const(&mut self) {
-        self.points.get_mut(&EType::Const).unwrap().push(self.pos.to_vec())
+        self.cnst.push(self.pos.to_vec())
     }
     pub fn insert_bit(&mut self) {
-        self.points.get_mut(&EType::Bit).unwrap().push(self.pos.to_vec())
+        self.bit.push(self.pos.to_vec())
     }
     pub fn insert_bin(&mut self) {
-        self.points.get_mut(&EType::Bin).unwrap().push(self.pos.to_vec())
+        self.bin.push(self.pos.to_vec())
     }
     pub fn push(&mut self, u: u8) { self.pos.push(u) }
     pub fn pop(&mut self) { self.pos.pop(); }
