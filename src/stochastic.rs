@@ -219,6 +219,7 @@ impl Stochastic {
             Some((new_expr, new_cost))
         }
     }
+
     /// Get the current expression
     pub fn get_expr(&self) -> Expr { self.curr_expr.clone() }
 }
@@ -472,7 +473,6 @@ impl<'a> Transform<'a> {
     }
 
     fn transform_boolop(&mut self, e: &mut Expr) {
-        use expr::Expr::*;
         use self::Mov::*;
 
         match self.trans {

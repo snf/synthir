@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use op::{OpArith, OpLogic, OpUnary, OpBool, OpCast};
 use num::bigint::{BigUint, ToBigUint};
 
@@ -289,20 +287,6 @@ impl EBuild {
 }
 // #################################
 
-/// The type of Expr in each part of the Expr tree, helpful for
-/// knowing where to replace with what afterwards.
-#[derive(Debug,Clone,Copy,PartialEq,Eq,Hash)]
-pub enum EType {
-    Op,
-    Expr,
-    Type,
-    Width,
-    Bit,
-    Bin,
-    Dep,
-    Const
-}
-
 /// Points in the Expr tree
 #[derive(Debug)]
 pub struct EPoints {
@@ -319,8 +303,6 @@ pub struct EPoints {
 
 impl EPoints {
     pub fn new() -> EPoints {
-        use self::EType::*;
-
         EPoints {
             pos: Vec::with_capacity(50),
             op: Vec::with_capacity(50),
