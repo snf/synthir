@@ -561,20 +561,26 @@ impl<'a, T: Native> Work<'a, T> {
 
     /// Stochastic search of the expression
     fn get_expr_stochastic(&self, ins: &Instruction,
-                               dep: &Dep,
-                               io_set: &IOSet<Dep, BigUint>)
-        -> Expr
+                           dep: &Dep,
+                           io_set: &IOSet<Dep, BigUint>)
+                           -> Vec<Expr>
     {
+        let mut exprs = Vec::new();
         let expr_inits = self.get_expr_ioset(io_set);
         let io_set_e = self.ioset_to_res_var_val(io_set);
-
         //println!("io_set_e: {:?}", io_set_e);
-        let mut stoc = Stochastic::new(&expr_inits,
-                                       &io_set_e,
-                                       dep.get_bit_width());
-        stoc.set_max_secs(20.0);
-        stoc.work();
-        stoc.get_expr()
+
+        const MIN_EXPRS: u32 = 1;
+        for i in 0 .. MIN_EXPRS {
+            let mut stoc = Stochastic::new(&expr_inits,
+                                           &io_set_e,
+                                           dep.get_bit_width());
+            stoc.set_max_secs(20.0);
+            stoc.work();
+            let val = stoc.get_expr();
+            exprs.push(val);
+        }
+        exprs
     }
 
     /// Template search of the expression
@@ -601,6 +607,8 @@ impl<'a, T: Native> Work<'a, T> {
     // pub type IOSet<D, Val> = Vec<(HashMap<D, Val>, Val)>;
     // pub type IOSets<D, Val> = HashMap<D, IOSet<D, Val>>;
 
+    /// Verify and/or create new test cases
+
     /// Synthetize the Expr store in the Expr
     pub fn synthetize(&self, ins: &Instruction,
                       dep: &Dep,
@@ -611,18 +619,17 @@ impl<'a, T: Native> Work<'a, T> {
         // 1) Use the templates
         // 2) Use the stochastic approach with the cost function
         // 3) Use the mixed template + stochastic
-        //Expr::empty()
-        let from_template = self.get_expr_template(ins, dep, io_set, others);
-        println!("from template: {:?}", from_template);
+        let mut exprs: Vec<Expr> = Vec::new();
 
-        const MIN_EXPRS: u32 = 1;
-        let mut exprs = Vec::new();
-        for i in 0 .. MIN_EXPRS {
-            let new_e = self.get_expr_stochastic(ins, dep, io_set);
-            exprs.push(new_e);
-        }
+        let mut from_template = self.get_expr_template(ins, dep, io_set, others);
+        println!("from template: {:?}", from_template);
+        exprs.append(&mut from_template);
+
+        let mut from_stochastic = self.get_expr_stochastic(ins, dep, io_set);
+        println!("from stochastic: {:?}", from_stochastic);
+        exprs.append(&mut from_stochastic);
+
         exprs.remove(0)
-        //Expr::NoOp
     }
 
     pub fn work_instruction(&self, ins: &Instruction)
