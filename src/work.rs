@@ -2,6 +2,7 @@ use std::collections::{HashSet, HashMap};
 use num::traits::{One, Zero, ToPrimitive};
 use num::bigint::{ToBigUint, BigUint};
 
+use emulator::{State, execute_expr};
 use expr::Expr;
 use sample::{DepValueSampler};
 use native::{Native, Opnd, Instruction};
@@ -10,6 +11,7 @@ use execution::{Execution, ExecutionRes, Dep};
 use stochastic::Stochastic;
 use templates::TemplateSearch;
 use utils::{LastCache};
+use verify::{equal_or_counter};
 
 // XXX_ this file is probably competing with definition.rs for worst
 // code ever (ever).
@@ -525,6 +527,29 @@ impl<'a, T: Native> Work<'a, T> {
         }
     }
 
+    /// Convert Expr back to Dep
+    fn expr_to_dep(&self, e: &Expr) -> Dep {
+        if !e.is_reg() {
+            panic!("Expr must be a Reg");
+        }
+        let s_t = e.get_reg_name();
+        let w = e.get_width().unwrap();
+        let mem = s_t.starts_with("M_");
+        if mem {
+            let mut splitted = s_t.split("_");
+            let reg_name_t = splitted.nth(1).unwrap();
+            let reg_name = self.def.regname_to_regname(reg_name_t);
+            let offset = splitted.nth(0).unwrap().parse::<i32>().unwrap();
+            let mut dep = Dep::new(reg_name);
+            dep.mem(true).offset(offset).bit_width(w);
+            dep
+        } else {
+            let s = self.def.regname_to_regname(s_t);
+            let mut dep = Dep::new(s);
+            dep.bit_width(w);
+            dep
+        }
+    }
 
     /// Get all the Expr from an IOSet
     fn get_expr_ioset(&self, io_set: &IOSet<Dep, BigUint>)
@@ -604,21 +629,152 @@ impl<'a, T: Native> Work<'a, T> {
         template.work()
     }
 
-    // pub type IOSet<D, Val> = Vec<(HashMap<D, Val>, Val)>;
-    // pub type IOSets<D, Val> = HashMap<D, IOSet<D, Val>>;
+    /// Emulate all the I/O sets for an expression and return true if
+    /// the expected outputs match with the obtained ones
+    fn emulate_expected(&self,
+                        e: &Expr,
+                        io_set: &IOSet<Dep, BigUint>,
+                        others: &[&Expr]) -> bool
+    {
+        let io_set_e = self.ioset_to_res_var_val(io_set);
+        for (ref expected, ref io_set) in io_set_e {
+            if let Ok(res) = execute_expr(&State::borrow(io_set), e) {
+                if res.value() == expected {
+                    continue;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// Emulate the Expr once and return the result
+    fn emulate_once(&self,
+                    e: &Expr,
+                    inputs: &HashMap<Expr, BigUint>)
+                    -> Result<BigUint, ()>
+    {
+        if let Ok(res) = execute_expr(&State::borrow(inputs), e) {
+            Ok(res.value().clone())
+        } else {
+            Err(())
+        }
+    }
+
+    /// Execute the Instruction once and return the result of the
+    /// dependency needed here
+    fn execute_once(&self, ins: &Instruction,
+                    dep_res: &Dep,
+                    inputs: &HashMap<Dep, BigUint>)
+                    -> Result<BigUint, ()>
+    {
+        // Initialize execution environment
+        let mut exec = Execution::new(&self.def);
+        let text_code = self.def.inst_to_text_code(ins, exec.regs_before_addr(),
+                                                   exec.regs_after_addr());
+        let bin_code = T::assemble(&text_code).unwrap();
+        exec.with_code(&bin_code);
+
+        // Set the inputs
+        for (dep, val) in inputs {
+            if dep.is_mem() {
+                exec.setup_ptr(dep);
+                exec.set_dep(dep, &BigUint::zero());
+            }
+            exec.set_dep(dep, &val);
+        }
+
+        // Execute
+        let exec_res = exec.execute(&self.def);
+        if exec_res.is_none() {
+            return Err(())
+        }
+
+        // Get the result
+        let val_res = {
+            let exec_res = exec_res.unwrap();
+            exec_res.get_dep_value(dep_res)
+        };
+        Ok(val_res)
+    }
+
+    // fn emulate_execute_match(&self, ins: &Instruction,
+    //                          dep: &Dep
 
     /// Verify and/or create new test cases
+    /// 1) Get in pairs and verify
+    /// 2) If equal, discard the larger
+    /// 3) Execute and discard the one not corresponding
+    /// 4) Add new I/O to ioset
+    /// 5) Go to 1 until only one is left
+    fn verify_contrast_reduce(&self, ins: &Instruction,
+                              dep: &Dep,
+                              io_set: &IOSet<Dep, BigUint>,
+                              exprs: &[&Expr])
+                              -> (Option<Expr>, IOSet<Dep, BigUint>)
+    {
+        let mut exprs = exprs.to_vec();
+        let mut io_set = io_set.clone();
+
+        while exprs.len() > 1 {
+            let fst = exprs.remove(0);
+            let snd = exprs.remove(0);
+            println!("Verify new round\nfst: {:?}\nsnd: {:?}", fst, snd);
+
+            if let Some(counter) = equal_or_counter(fst, snd) {
+                println!("Different");
+                let mut counter_m: HashMap<Dep, BigUint> = HashMap::new();
+                let _ = counter.iter()
+                    .inspect(|&(k, v)| {
+                        counter_m.insert(self.expr_to_dep(k), v.clone());
+                    })
+                    .count();
+                if let Ok(ex_res) = self.execute_once(ins, dep, &counter_m) {
+                    io_set.push((counter_m, ex_res.clone()));
+                    let mut count = 0;
+                    if let Ok(em_res) = self.emulate_once(fst, &counter) {
+                        if em_res == ex_res {
+                            count += 1;
+                            exprs.push(fst);
+                        }
+                    } else { panic!("couldn't emulate expr") }
+                    if let Ok(em_res) = self.emulate_once(snd, &counter) {
+                        if em_res == ex_res {
+                            count += 1;
+                            exprs.push(snd);
+                        }
+                    } else { panic!("couldn't emulate expr") }
+                    if count > 1 { panic!("solved failed us :(") }
+                } else {
+                    panic!(
+                        "verify_contrast_reduce couldn't execute counter example");
+                }
+            } else {
+                println!("Equal, removing larger");
+                let good = if fst.get_size() < snd.get_size() { fst } else { snd };
+                exprs.push(good);
+            }
+        }
+        if exprs.is_empty() {
+            (None, io_set.clone())
+        } else {
+            (Some(exprs.remove(0).clone()), io_set.clone())
+        }
+    }
 
     /// Synthetize the Expr store in the Expr
-    pub fn synthetize(&self, ins: &Instruction,
+    /// 1) Use the templates
+    /// 2) Use the stochastic approach with the cost function
+    /// 3) Use the mixed template + stochastic
+    fn synthetize(&self, ins: &Instruction,
                       dep: &Dep,
                       io_set: &IOSet<Dep, BigUint>,
                       others: &[&Expr])
                       -> Expr
     {
-        // 1) Use the templates
-        // 2) Use the stochastic approach with the cost function
-        // 3) Use the mixed template + stochastic
         let mut exprs: Vec<Expr> = Vec::new();
 
         let mut from_template = self.get_expr_template(ins, dep, io_set, others);
@@ -628,6 +784,11 @@ impl<'a, T: Native> Work<'a, T> {
         let mut from_stochastic = self.get_expr_stochastic(ins, dep, io_set);
         println!("from stochastic: {:?}", from_stochastic);
         exprs.append(&mut from_stochastic);
+
+        {
+            let r_exprs: Vec<&Expr> = exprs.iter().map(|k| k).collect();
+            let a = self.verify_contrast_reduce(ins, dep, io_set, &r_exprs);
+        }
 
         exprs.remove(0)
     }
