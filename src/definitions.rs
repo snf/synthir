@@ -203,6 +203,17 @@ impl Definition {
     // XXX_ implement me in Definition
     // pub fn sys_width(&self) -> u32 { 64 }
 
+    // XXX_ ugly hack for avoiding annotating Dep with lifetime params
+    /// Get an &'static str from an &str if it's inside known regs
+    pub fn regname_to_regname(&self, name: &str) -> &'static str {
+        //let n_name =
+            self.regs.keys()
+            //.iter()
+            .chain(self.sub_regs.keys())//.iter())
+            .find(|&n| n == &name)
+            .unwrap()
+    }
+
     /// Get the max width of a register
     pub fn max_reg_width(&self) -> u32 {
         self.regs.values()
