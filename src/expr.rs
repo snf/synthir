@@ -40,6 +40,9 @@ pub enum Expr {
     Float(Literal, FloatType),
     Int(Literal),
 
+    // A bitvector constant of specified width
+    Const(Literal, u32),
+
     // The idea is that this value is expnded then to the width needed
     IInt(ILiteral),
 
