@@ -130,6 +130,14 @@ impl Expr {
         }
     }
 
+    /// Get register name (will panic if it's not a reg)
+    pub fn get_reg_name(&self) -> &str {
+        match *self {
+            Reg(name, _) => &name,
+            _ => panic!("Only supports Expr::Reg")
+        }
+    }
+
     /// Return if it's a terminal expression (we can't recurse it any
     /// more)
     pub fn is_last(&self) -> bool {
