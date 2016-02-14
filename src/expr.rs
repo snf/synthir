@@ -133,7 +133,7 @@ impl Expr {
     /// Get register name (will panic if it's not a reg)
     pub fn get_reg_name(&self) -> &str {
         match *self {
-            Reg(name, _) => &name,
+            Reg(ref name, _) => name,
             _ => panic!("Only supports Expr::Reg")
         }
     }
