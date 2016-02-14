@@ -206,10 +206,8 @@ impl Definition {
     // XXX_ ugly hack for avoiding annotating Dep with lifetime params
     /// Get an &'static str from an &str if it's inside known regs
     pub fn regname_to_regname(&self, name: &str) -> &'static str {
-        //let n_name =
-            self.regs.keys()
-            //.iter()
-            .chain(self.sub_regs.keys())//.iter())
+        self.regs.keys()
+            .chain(self.sub_regs.keys())
             .find(|&n| n == &name)
             .unwrap()
     }
