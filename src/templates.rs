@@ -113,11 +113,13 @@ struct ZeroTemplate;
 impl ZeroTemplate {
     fn zero_flag(e: &Expr, width: u32) -> Expr {
         let mask = BigUint::one() << ((width as usize) - 1);
-        Expr::BoolOp(
-            OpBool::EQ,
-            Box::new(e.clone()),
-            Box::new(Expr::Int(BigUint::zero())),
-        )
+        Expr::ITE(
+            Box::new(Expr::BoolOp(
+                OpBool::EQ,
+                Box::new(e.clone()),
+                Box::new(Expr::Int(BigUint::zero())))),
+            Box::new(Expr::Int(BigUint::one())),
+            Box::new(Expr::Int(BigUint::zero())))
     }
 }
 
