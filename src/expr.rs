@@ -153,7 +153,7 @@ impl Expr {
                 => e1.get_width(),
             BoolOp(_, _, _) | Overflow(_, _, _, _) |
             Bit(_, _) => Some(1),
-            Bits(b1, b2, _) => Some(b2 - b1),
+            Bits(b1, b2, _) => Some(b2 - b1 + 1),
             NoOp => None,
             Int(_) | IInt(_) => None,
             // XXX_ cast is width-defined actually
