@@ -38,6 +38,8 @@ impl<'a> Z3Store<'a> {
         } else {
             let reg = self.z3.mk_bv_str(&e.to_string(),
                                         e.get_width().unwrap());
+            println!("reg: {:?}, width: {}",
+                     e, reg.get_bv_width());
             store.insert(e.clone(), reg.clone());
             reg
         }
@@ -275,6 +277,8 @@ pub fn equal_or_counter(e1: &Expr, e2: &Expr)
     let ast1 = translate(&z3, e1);
     let ast2 = translate(&z3, e2);
     let ctx = z3.z3();
+
+    println!("ast1: {:?}\nast2: {:?}", ast1, ast2);
 
     // Adjust both to the same bit width
     // XXX_ both should be adjusted to register width instead

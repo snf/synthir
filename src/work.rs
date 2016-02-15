@@ -725,7 +725,7 @@ impl<'a, T: Native> Work<'a, T> {
             println!("Verify new round\nfst: {:?}\nsnd: {:?}", fst, snd);
 
             if let Some(counter) = equal_or_counter(fst, snd) {
-                println!("Different");
+                println!("Different\nCounter: {:?}", counter);
                 let mut counter_m: HashMap<Dep, BigUint> = HashMap::new();
                 let _ = counter.iter()
                     .inspect(|&(k, v)| {
@@ -735,13 +735,16 @@ impl<'a, T: Native> Work<'a, T> {
                 if let Ok(ex_res) = self.execute_once(ins, dep, &counter_m) {
                     io_set.push((counter_m, ex_res.clone()));
                     let mut count = 0;
+                    println!("real_res: {:?}", ex_res);
                     if let Ok(em_res) = self.emulate_once(fst, &counter) {
+                        println!("fst_res: {:?}", em_res);
                         if em_res == ex_res {
                             count += 1;
                             exprs.push(fst);
                         }
                     } else { panic!("couldn't emulate expr") }
                     if let Ok(em_res) = self.emulate_once(snd, &counter) {
+                        println!("snd_res: {:?}", em_res);
                         if em_res == ex_res {
                             count += 1;
                             exprs.push(snd);
