@@ -18,6 +18,8 @@ enum Mov {
     Insert,
     /// Replace one operation in the tree with one of the same type
     ReplaceOp,
+    /// Replace the type of the expression
+    ReplaceType,
     /// Replace one expression in the tree with one of the same type
     ReplaceExpr,
     /// Swap an argument expression in an argument with left or right
@@ -29,6 +31,7 @@ enum Mov {
 const MAX_TRIES: u64 = 0x10000000;
 const MAX_SECS: f64 = 6000.0;
 const REPORT_SECS: f64 = 30.0;
+const REPORT_SECS_U64: u64 = REPORT_SECS as u64;
 const REPORT_TRIES: u64 = 500;
 
 /// Stochastic algorithm to try to find the operation
@@ -54,9 +57,10 @@ impl Stochastic {
     {
         let mut moves = HashMap::new();
         moves.insert(Mov::Insert, 1);
-        moves.insert(Mov::ReplaceOp, 6);
+        moves.insert(Mov::ReplaceOp, 4);
+        moves.insert(Mov::ReplaceType, 6);
         moves.insert(Mov::ReplaceExpr, 1);
-        moves.insert(Mov::Swap, 1);
+        moves.insert(Mov::Swap, 5);
         moves.insert(Mov::Remove, 4);
         Stochastic {
             io_sets: io_sets.to_vec(),
@@ -108,6 +112,7 @@ impl Stochastic {
         let possible_points = match mov {
             Mov::Insert => epoints.get_expr(),
             Mov::ReplaceOp => epoints.get_op(),
+            Mov::ReplaceType => epoints.get_ty(),
             Mov::ReplaceExpr => epoints.get_expr(),
             Mov::Swap => epoints.get_bin(),
             Mov::Remove => epoints.get_expr()
@@ -139,6 +144,7 @@ impl Stochastic {
         println!("Current cost: {}", self.curr_cost);
         println!("Current expr: {:?}", self.curr_expr);
         println!("Tries since last report: {}", tries);
+        println!("Exprs/min: {}", (tries * 60/ REPORT_SECS_U64));
     }
 
     /// All the work
@@ -165,6 +171,10 @@ impl Stochastic {
                 let now = precise_time_s();
                 // Report every REPORT_SECS
                 if (now - last_report) >= REPORT_SECS {
+                    let diff = now - last_report - REPORT_SECS;
+                    if diff > 5.0 {
+                        println!("Something is bad, can't take more than 5 secs to hit the report, diff: {}", diff);
+                    }
                     self.report(tries - last_tries);
                     last_report = now;
                     last_tries = tries;
@@ -322,11 +332,13 @@ impl<'a> Cost<'a> {
     {
         let state = State::borrow(io_set);
         Ok(
-            try!(execute_expr(&state, self.expr)).value().clone())
+            // XXX_ self.width * 2 just for testing
+            try!(execute_expr(&state, self.expr, self.width * 2)).value().clone())
     }
 
     /// Default cost for hamming
     fn default_hamming(&self) -> f64 {
+        // XXX_ play with this const
         8f64 * ((self.width / 8) as f64)
     }
 
@@ -430,8 +442,8 @@ impl<'a> Transform<'a> {
         use expr::Expr::*;
         match *e {
             ArithOp(_, ref mut e1, ref mut e2, _) |
-            LogicOp(_, ref mut e1, ref mut e2) |
-            BoolOp(_, ref mut e1, ref mut e2) => {
+            LogicOp(_, ref mut e1, ref mut e2, _) |
+            BoolOp(_, ref mut e1, ref mut e2, _) => {
                 let e1_t = e1.clone();
                 *e1 = e2.clone();
                 *e2 = e1_t;
@@ -445,29 +457,40 @@ impl<'a> Transform<'a> {
         };
     }
 
+    fn transform_replace_type(&mut self, e: &mut Expr) {
+        use expr::Expr::*;
+        match *e {
+            ArithOp(_, _, _, ref mut ty) =>
+                *ty = self.sampler.sample_ty(None),
+            LogicOp(_, _, _, ref mut w) | BoolOp(_, _, _, ref mut w) |
+            UnOp(_, _, ref mut w) =>
+                *w = self.sampler.sample_width(None),
+            Bits(ref mut b1, ref mut b2, _) => {
+                let (bit1, bit2) = self.sampler.sample_bits(None, None);
+                *b1 = bit1;
+                *b2 = bit2;
+            }
+            Bit(ref mut b, _) =>
+                *b = self.sampler.sample_bit(None),
+            Cast(ref mut o, ref mut ty, ref e1) =>
+                *ty = self.sampler.sample_ty(None),
+            _ => panic!(format!("replace type supported: {:?}", e))
+        };
+    }
+
     fn transform_replace_op(&mut self, e: &mut Expr) {
         use expr::Expr::*;
         match *e {
-            ArithOp(ref mut o, ref e1, ref e2, ref mut ty) => {
-                if self.rng.gen::<bool>() {
-                    *o = self.sampler.sample_arithop();
-                } else {
-                    *ty = self.sampler.sample_ty(None);
-                }
-            }
-            LogicOp(ref mut o, ref e1, ref e2) =>
+            ArithOp(ref mut o, ref e1, ref e2, ref mut ty) =>
+                *o = self.sampler.sample_arithop(),
+            LogicOp(ref mut o, ref e1, ref e2, _) =>
                 *o = self.sampler.sample_logicop(),
-            BoolOp(ref mut o, ref e1, ref e2) =>
+            BoolOp(ref mut o, ref e1, ref e2, _) =>
                 *o = self.sampler.sample_boolop(),
-            UnOp(ref mut o, ref e1) =>
+            UnOp(ref mut o, ref e1, _) =>
                 *o = self.sampler.sample_unop(),
-            Cast(ref mut o, ref mut ty, ref e1) => {
-                if self.rng.gen::<bool>() {
-                    *o = self.sampler.sample_castop();
-                } else {
-                    *ty = self.sampler.sample_ty(None);
-                }
-            }
+            Cast(ref mut o, ref mut ty, ref e1) =>
+                *o = self.sampler.sample_castop(),
             _ => panic!(format!("replace op supported: {:?}", e))
         };
     }
@@ -480,6 +503,7 @@ impl<'a> Transform<'a> {
                 => *e = self.sampler.sample_boolexpr(),
             Swap => self.transform_swap(e),
             ReplaceOp => self.transform_replace_op(e),
+            ReplaceType => self.transform_replace_type(e),
         }
     }
 
@@ -500,8 +524,8 @@ impl<'a> Transform<'a> {
         if !this {
             match *e {
                 ArithOp(_, ref mut e1, ref mut e2, _) |
-                LogicOp(_, ref mut e1, ref mut e2) |
-                BoolOp(_, ref mut e1, ref mut e2) => {
+                LogicOp(_, ref mut e1, ref mut e2, _) |
+                BoolOp(_, ref mut e1, ref mut e2, _) => {
                     if p == 1 {
                         self.transform_op3(e1, curr+1);
                     } else if p == 2 {
@@ -523,7 +547,7 @@ impl<'a> Transform<'a> {
                             "binary operator and p({})!=[1;2]", p));
                     }
                 },
-                UnOp(_, ref mut e1) | Cast(_, _, ref mut e1) |
+                UnOp(_, ref mut e1, _) | Cast(_, _, ref mut e1) |
                 Bit(_, ref mut e1) | Bits(_, _, ref mut e1) =>
                 {
                     self.transform_op3(e1, curr+1);
@@ -548,6 +572,12 @@ impl<'a> Transform<'a> {
         }
         else if this && self.trans == ReplaceOp {
             self.transform_replace_op(e);
+        }
+        else if this && self.trans == ReplaceType {
+            self.transform_replace_type(e);
+        }
+        else {
+            panic!("trans: {:?}, this: {:?}, expr: {:?}", self.trans, this, e);
         }
     }
 }

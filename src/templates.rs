@@ -112,12 +112,12 @@ struct ZeroTemplate;
 
 impl ZeroTemplate {
     fn zero_flag(e: &Expr, width: u32) -> Expr {
-        let mask = BigUint::one() << ((width as usize) - 1);
         Expr::ITE(
             Box::new(Expr::BoolOp(
                 OpBool::EQ,
                 Box::new(e.clone()),
-                Box::new(Expr::Int(BigUint::zero())))),
+                Box::new(Expr::Int(BigUint::zero())),
+                width)),
             Box::new(Expr::Int(BigUint::one())),
             Box::new(Expr::Int(BigUint::zero())))
     }
@@ -170,7 +170,7 @@ impl<'a> TemplateSearch<'a> {
     {
         let state = State::borrow(io_set);
         Ok(
-            try!(execute_expr(&state, e)).value().clone())
+            try!(execute_expr(&state, e, self.expr_width)).value().clone())
     }
 
     /// Execute all the I/O sets for an expression and return true if

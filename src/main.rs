@@ -79,7 +79,7 @@ mod test_stochastic {
             res.push(stoc.get_expr());
         }
         println!("res: {:#?}", res);
-        let counter = equal_or_counter(&res[0], &res[1]);
+        let counter = equal_or_counter(&res[0], &res[1], 32);
         println!("counter: {:#?}", counter);
     }
 
@@ -91,7 +91,7 @@ mod test_stochastic {
                               Box::new(Expr::Int(10.to_biguint().unwrap())),
                               ExprType::Int(1));
         let b = a.clone();
-        let counter = equal_or_counter(&a, &b);
+        let counter = equal_or_counter(&a, &b, 1);
         println!("counter: {:#?}", counter);
     }
 }
@@ -115,13 +115,15 @@ mod test_sub_eax_1 {
         let e = LogicOp(Xor,
                         eax.clone(),
                         Box::new(LogicOp(Xor,
-                                         Box::new(UnOp(Neg, eax.clone())),
-                                         Box::new(UnOp(Not, eax.clone())))));
+                                         Box::new(UnOp(Neg, eax.clone(), 32)),
+                                         Box::new(UnOp(Not, eax.clone(), 32)),
+                                         32)),
+                        32);
         for i in 0 .. 0xffFFffFFu32 {
             let mut map = HashMap::new();
             map.insert(raw_eax.clone(), i.to_biguint().unwrap());
             let state = State::borrow(&map);
-            let res = execute_expr(&state, &e);
+            let res = execute_expr(&state, &e, 32);
             if let Ok(res) = res {
                 if res.value().to_u32().unwrap() != (i - 1) {
                     println!("not eq: {}, expected: {}", res.value(), (i - 1));
@@ -374,8 +376,8 @@ fn main() {
     //test_stochastic::test_popcnt();
     //test_work::push_rax();
     //test_work::pop_rax();
-    test_work::popcnt_rax_rcx();
-    //test_work::mul_rcx();
+    //test_work::popcnt_rax_rcx();
+    test_work::mul_rcx();
     //test_work::cmp_rax_rbx();
     //test_stochastic::mul_rcx();
     //test_work::w_vaddps();

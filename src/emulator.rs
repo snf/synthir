@@ -8,10 +8,39 @@ use num::bigint::{ToBigUint, BigUint};
 use num::traits::{ToPrimitive, Zero, One};
 use num::Num;
 
+static mut MASKS_ALL: *mut Vec<BigUint> = 0 as *mut Vec<BigUint>;
+static mut MASKS_BIT: *mut Vec<BigUint> = 0 as *mut Vec<BigUint>;
+
 pub struct State<'a> {
     values: &'a HashMap<Expr, BigUint>,
 }
 
+/// Initialize the global vector of BigUint masks
+fn init_masks() {
+    let mut v_a = Box::new(Vec::new());
+    let mut v_b = Box::new(Vec::new());
+
+    for i in 0..1024 {
+        let bit_mask = BigUint::one() << i;
+        let all_mask = &bit_mask - BigUint::one();
+        v_a.push(all_mask);
+        v_b.push(bit_mask);
+    }
+    unsafe {
+        MASKS_ALL = Box::into_raw(v_a);
+        MASKS_BIT = Box::into_raw(v_b);
+    }
+}
+
+#[inline(always)]
+fn mask_n_bits<'a>(n: u32) -> &'a BigUint {
+    unsafe { (*MASKS_ALL).get_unchecked(n as usize) }
+}
+
+#[inline(always)]
+fn mask_bit_n<'a>(n: u32) -> &'a BigUint {
+    unsafe { (*MASKS_BIT).get_unchecked(n as usize) }
+}
 
 impl<'a> State<'a> {
     pub fn borrow(map: &'a HashMap<Expr, BigUint>) -> State<'a> {
@@ -121,16 +150,25 @@ pub struct Value {
 }
 
 impl Value {
+    #[cfg(test)]
     pub fn new(value: BigUint, width: u32) -> Value {
-        let size_mask = (BigUint::one() << (width as usize)) - BigUint::one();
+        init_masks();
+        let size_mask = mask_n_bits(width);
         Value { value: value & size_mask, width: width }
     }
+
+    #[cfg(not(test))]
+    pub fn new(value: BigUint, width: u32) -> Value {
+        let size_mask = mask_n_bits(width);
+        Value { value: value & size_mask, width: width }
+    }
+
     pub fn new_unchecked(value: BigUint, width: u32) -> Value {
         Value { value: value, width: width }
     }
     pub fn from_int(value: i32, width: u32) -> Value {
         let abs_value = value.abs();
-        let val = Value::new(abs_value.to_biguint().unwrap(), width);
+        let val = Value::new_unchecked(abs_value.to_biguint().unwrap(), width);
         if value >= 0 {
             val
         } else {
@@ -140,31 +178,31 @@ impl Value {
     pub fn value(&self) -> &BigUint {
         &self.value
     }
-    fn sign(&self) -> Sign {
+    pub fn get_sign(&self) -> Sign {
         if self.width.is_zero() {
             return Sign::Positive
         }
-        let sign_bit_b = BigUint::one() << ((self.width as usize) - 1);
+        let sign_bit_b = mask_bit_n(self.width - 1);
         if (&self.value & sign_bit_b).is_zero() {
             Sign::Positive
         } else {
             Sign::Negative
         }
     }
-    fn unsign(&self) -> Value {
-        if self.sign() == Sign::Positive {
+    pub fn unsign(&self) -> Value {
+        if self.get_sign() == Sign::Positive {
             self.clone()
         } else {
-            let sign_mask = BigUint::one() << (self.width as usize);
+            let sign_mask = mask_bit_n(self.width);
             Value {
                 width: self.width,
                 value: sign_mask - &self.value
             }
         }
     }
-    fn set_sign(self, sign: Sign) -> Value {
+    pub fn set_sign(self, sign: Sign) -> Value {
         if sign == Sign::Negative {
-            let sign_n_b = BigUint::one() << (self.width as usize);
+            let sign_n_b = mask_bit_n(self.width);
             Value {
                 width: self.width,
                 value: sign_n_b - self.value
@@ -173,10 +211,44 @@ impl Value {
             self
         }
     }
-    pub fn width(&self) -> u32 { self.width }
+    pub fn get_width(&self) -> u32 { self.width }
+    pub fn set_width(&mut self, w: u32) { self.width = w }
 }
 
-fn execute_sub(v1: &Value, v2: &Value, width: u32) -> BigUint {
+/// Sign extend (should only be used by adjust_width)
+fn sign_ext(v: &Value, width: u32) -> Value {
+    let sign = v.get_sign();
+    let mut unsigned = v.clone();
+    unsigned.set_width(width);
+    unsigned.set_sign(sign)
+}
+
+/// Extract bits (should only be used by adjust_width)
+fn extract(v: &Value, width: u32) -> Value {
+    let inside = v.value().clone();
+    Value::new(inside, width)
+}
+
+/// Adjust width
+fn adjust_width(v: &Value,
+                width: u32, s_ext: bool) -> Value
+{
+    if width > v.get_width() {
+        if s_ext {
+            sign_ext(v, width)
+        } else {
+            let mut rv = v.clone();
+            rv.set_width(width);
+            rv
+        }
+    } else if width < v.get_width() {
+        extract(v, width)
+    } else {
+        v.clone()
+    }
+}
+
+fn execute_sub(v1: &Value, v2: &Value, w: u32) -> BigUint {
     let ref b1 = v1.value;
     let ref b2 = v2.value;
     if b1 >= b2 {
@@ -185,15 +257,16 @@ fn execute_sub(v1: &Value, v2: &Value, width: u32) -> BigUint {
         let ub1 = v1.unsign().value;
         let ub2 = v2.unsign().value;
         if ub1 >= ub2 {
-            Value::new((ub1 - ub2), width).set_sign(Sign::Negative).value
+            Value::new((ub1 - ub2), w).set_sign(Sign::Negative).value
         } else {
-            Value::new((ub2 - ub1), width).set_sign(Sign::Negative).value
+            Value::new((ub2 - ub1), w).set_sign(Sign::Negative).value
         }
     }
-
 }
 
-fn execute_logicop(op: OpLogic, v1: &Value, v2: &Value) -> Value {
+fn execute_logicop(op: OpLogic, v1: &Value, v2: &Value, w: u32) -> Value {
+    let v1 = adjust_width(v1, w, false);
+    let v2 = adjust_width(v2, w, false);
     let ref b1 = v1.value;
     let ref b2 = v2.value;
     let v_res = match op {
@@ -224,6 +297,8 @@ fn execute_logicop(op: OpLogic, v1: &Value, v2: &Value) -> Value {
 pub fn execute_unsigned_arithop(op: OpArith, v1: &Value, v2: &Value, width: u32)
                                 -> Result<Value,()>
 {
+    let v1 = adjust_width(v1, width, false);
+    let v2 = adjust_width(v2, width, false);
     let ref b1 = v1.value;
     let ref b2 = v2.value;
     let v_res = match op {
@@ -237,7 +312,7 @@ pub fn execute_unsigned_arithop(op: OpArith, v1: &Value, v2: &Value, width: u32)
             b1 << b2_usize
         },
         OpArith::Add => b1 + b2,
-        OpArith::Sub => execute_sub(v1, v2, width),
+        OpArith::Sub => execute_sub(&v1, &v2, width),
         OpArith::Mul => b1 * b2,
         OpArith::Div => {
             if b2.is_zero() {
@@ -259,10 +334,12 @@ pub fn execute_unsigned_arithop(op: OpArith, v1: &Value, v2: &Value, width: u32)
 pub fn execute_signed_arithop(op: OpArith, v1: &Value, v2: &Value, width: u32)
                               -> Result<Value,()>
 {
-    let sign_1 = v1.sign();
+    let v1 = adjust_width(v1, width, true);
+    let v2 = adjust_width(v2, width, true);
+    let sign_1 = v1.get_sign();
     match op {
         OpArith::SDiv => {
-            let sign = v1.sign() * v2.sign();
+            let sign = v1.get_sign() * v2.get_sign();
             let v2_unsigned = v2.unsign().value;
             if v2_unsigned.is_zero() {
                 return Err(());
@@ -272,11 +349,11 @@ pub fn execute_signed_arithop(op: OpArith, v1: &Value, v2: &Value, width: u32)
             Ok(s_res)
         },
         OpArith::ARShift => {
-            // assert!(v2.sign() == Sign::Positive);
-            if v2.sign() == Sign::Negative {
+            // assert!(v2.get_sign() == Sign::Positive);
+            if v2.get_sign() == Sign::Negative {
                 return Err(());
             }
-            let in_bit = match v1.sign() {
+            let in_bit = match v1.get_sign() {
                 Sign::Positive => 0,
                 Sign::Negative => 1,
             };
@@ -304,7 +381,7 @@ pub fn execute_signed_arithop(op: OpArith, v1: &Value, v2: &Value, width: u32)
                 return Err(());
             }
             let res = v1.unsign().value % v2_unsigned;
-            Ok(Value::new(res, width).set_sign(v1.sign()))
+            Ok(Value::new(res, width).set_sign(v1.get_sign()))
         },
         _ => panic!("not supported")
     }
@@ -329,18 +406,20 @@ fn execute_arithop(op: OpArith, v1: &Value, v2: &Value, ty: ExprType)
     }
 }
 
-pub fn execute_unop(op: OpUnary, v: &Value) -> Value {
+pub fn execute_unop(op: OpUnary, v: &Value, w: u32) -> Value {
+    let v = adjust_width(v, w, false);
     let ref val = v.value;
     match op {
         OpUnary::Neg => Value::new(
-            (BigUint::one() << v.width as usize) - val, v.width),
+            mask_bit_n(v.width) - val, v.width),
         OpUnary::Not => Value::new(
-            ((BigUint::one() << v.width as usize) - BigUint::one())
-                ^ val, v.width)
+            mask_n_bits(v.width) ^ val, v.width)
     }
 }
 
-pub fn execute_unsigned_boolop(op: OpBool, v1: &Value, v2: &Value) -> bool {
+fn execute_unsigned_boolop(op: OpBool, v1: &Value, v2: &Value, w: u32) -> bool {
+    let v1 = adjust_width(v1, w, false);
+    let v2 = adjust_width(v2, w, false);
     let ref v1 = v1.value;
     let ref v2 = v2.value;
     match op {
@@ -352,8 +431,10 @@ pub fn execute_unsigned_boolop(op: OpBool, v1: &Value, v2: &Value) -> bool {
     }
 }
 
-fn execute_signed_boolop(op: OpBool, v1: &Value, v2: &Value) -> bool {
-    let is_larger = match (v1.sign(), v2.sign()) {
+fn execute_signed_boolop(op: OpBool, v1: &Value, v2: &Value, w: u32) -> bool {
+    let v1 = adjust_width(v1, w, true);
+    let v2 = adjust_width(v2, w, true);
+    let is_larger = match (v1.get_sign(), v2.get_sign()) {
         (Sign::Positive, Sign::Negative) => true,
         (Sign::Negative, Sign::Positive) => false,
         (_ , _) => v1.value > v2.value
@@ -365,30 +446,30 @@ fn execute_signed_boolop(op: OpBool, v1: &Value, v2: &Value) -> bool {
     }
 }
 
-fn execute_boolop(op: OpBool, v1: &Value, v2: &Value) -> Value {
+fn execute_boolop(op: OpBool, v1: &Value, v2: &Value, w: u32) -> Value {
     let res = match op {
         OpBool::LT | OpBool::LE |
-        OpBool::EQ | OpBool::NEQ => execute_unsigned_boolop(op, v1, v2),
-        OpBool::SLT | OpBool::SLE => execute_signed_boolop(op, v1, v2)
+        OpBool::EQ | OpBool::NEQ => execute_unsigned_boolop(op, v1, v2, w),
+        OpBool::SLT | OpBool::SLE => execute_signed_boolop(op, v1, v2, w)
     };
     match res {
-        true => Value::new(BigUint::one(), 1),
-        false => Value::new(BigUint::zero(), 1)
+        true => Value::new_unchecked(BigUint::one(), 1),
+        false => Value::new_unchecked(BigUint::zero(), 1)
     }
 }
 
-// XXX_ We should only force Value on the branch taken to save some
-// cpu.
-fn execute_ite(b: &Value, e1: &Value, e2: &Value) -> Value {
+/// Only execute the Expr that is needed to evaluate according to the
+/// condition, it's a special case
+fn execute_ite(state: &State, b: &Value, e1: &Expr, e2: &Expr, w: u32)
+               -> Result<Value,()>
+{
     let ref v = b.value;
     if v == &BigUint::one() {
-        e1.clone()
+        execute_expr(state, e1, w)
     } else if v == &BigUint::zero() {
-        e2.clone()
+        execute_expr(state, e2, w)
     } else {
-        // XXX_ I know...
         panic!("ITE first argument should be 1 bit")
-        //e1.clone()
     }
 }
 
@@ -397,18 +478,18 @@ fn execute_cast(op: OpCast, et: ExprType, v: &Value) -> Result<Value,()> {
     let ty_w = et.get_int_width();
     match op {
         OpCast::CastLow => {
-            if ty_w > v.width() {
+            if ty_w > v.get_width() {
                 Err(())
             } else {
-                let mask = (BigUint::one() << (ty_w as usize)) - BigUint::one();
+                let mask = mask_n_bits(ty_w);
                 Ok(Value::new(v.value() & mask, ty_w))
             }
         }
         OpCast::CastHigh => {
-            if ty_w > v.width() {
+            if ty_w > v.get_width() {
                 Err(())
             } else {
-                let res = v.value() >> ((v.width() - ty_w) as usize);
+                let res = v.value() >> ((v.get_width() - ty_w) as usize);
                 Ok(Value::new(res, ty_w))
             }
         }
@@ -417,59 +498,87 @@ fn execute_cast(op: OpCast, et: ExprType, v: &Value) -> Result<Value,()> {
     }
 }
 
+fn create_iint(i: i16, w: u32) -> Result<Value, ()> {
+    if i < 0 {
+        let val = mask_bit_n(w);
+        let abs = i.abs().to_biguint().unwrap();
+        if &abs > val {
+            Err(())
+        } else {
+            Ok(Value::new_unchecked(val - abs, w))
+        }
+    } else {
+        let val = i.to_biguint().unwrap();
+        Ok(Value::new(val, w))
+    }
+}
+
 pub fn execute_bits(high: u32, low: u32, v: &Value) -> Result<Value,()> {
-    if high > v.width() || low > v.width() || low > high {
+    if high > v.get_width() || low > v.get_width() || low > high {
         return Err(());
     }
     let new_width = high - low + 1;
-    let mask_bits = (BigUint::one() << (new_width as usize)) - BigUint::one();
+    let mask_bits = mask_n_bits(new_width);
     let mask = mask_bits << (low as usize);
     let val = &v.value & mask;
     Ok(Value::new(val >> (low as usize), new_width))
 }
 
-pub fn execute_expr(state: &State, e: &Expr) -> Result<Value,()> {
+fn execute_expr_2(state: &State, e: &Expr, w: u32) -> Result<Value,()> {
     let res = match *e {
         Reg(ref n, _) => try!(state.get_expr_value(e)),
         // XXX_ implement me, but I have the feeling that it should be
         // avoided at all cost and only found during dependency.
         Deref(ref e, _) => // try!(execute_expr(state, &*e)),
             try!(state.get_expr_value(e)),
-        // XXX_ this one should be good to depend on the width of the
-        // last expression, so for example if it's -1 for an Int(8)
-        // type, then it will go to 0xff, for Int(16): 0xFFff, etc.
-        Int(ref i) => Value::new(i.clone(), 32),
-        // XXX_ this too
-        IInt(i) => Value::new(i.abs().to_biguint().unwrap(), 32),
-        ArithOp(o, ref e1, ref e2, et) =>
+        Int(ref i) => Value::new(i.clone(), w),
+        IInt(i) => try!(create_iint(i, w)),
+        ArithOp(o, ref e1, ref e2, et) => {
+            let w = et.get_width();
             try!(execute_arithop(o,
-                                 &try!(execute_expr(state, &*e1)),
-                                 &try!(execute_expr(state, &*e2)),
-                                 et)),
-        LogicOp(o, ref e1, ref e2) =>
+                                 &try!(execute_expr(state, &*e1, w)),
+                                 &try!(execute_expr(state, &*e2, w)),
+                                 et))
+        },
+        LogicOp(o, ref e1, ref e2, w) =>
             execute_logicop(o,
-                            &try!(execute_expr(state, &*e1)),
-                            &try!(execute_expr(state, &*e2))),
-        BoolOp(o, ref e1, ref e2) =>
+                            &try!(execute_expr(state, &*e1, w)),
+                            &try!(execute_expr(state, &*e2, w)),
+                            w),
+        BoolOp(o, ref e1, ref e2, w) =>
             execute_boolop(o,
-                           &try!(execute_expr(state, &*e1)),
-                           &try!(execute_expr(state, &*e2))),
-        UnOp(o, ref e) => execute_unop(o,
-                                        &try!(execute_expr(state, &*e))),
+                           &try!(execute_expr(state, &*e1, w)),
+                           &try!(execute_expr(state, &*e2, w)),
+                           w),
+        UnOp(o, ref e, w) => execute_unop(o,
+                                          &try!(execute_expr(state, &*e, w)),
+                                          w),
         ITE(ref eb, ref e1, ref e2) =>
-            execute_ite(&try!(execute_expr(state, &*eb)),
-                        &try!(execute_expr(state, &*e1)),
-                        &try!(execute_expr(state, &*e2))),
+            try!(execute_ite(state,
+                             &try!(execute_expr(state, &*eb, 1)),
+                             e1,
+                             e2,
+                             w)),
         Cast(o, ref et, ref e) => try!(
             execute_cast(o, *et,
-                         &try!(execute_expr(state, &*e)))),
+                         // XXX_ which should be the width there?
+                         &try!(execute_expr(state, &*e, 128)))),
         Bits(high, low, ref e) => try!(
-            execute_bits(high, low, &try!(execute_expr(state, &*e)))),
+            execute_bits(high, low, &try!(execute_expr(state, &*e, high + 1)))),
         Bit(b, ref e) => try!(
-            execute_bits(b, b, &try!(execute_expr(state, &*e)))),
+            execute_bits(b, b, &try!(execute_expr(state, &*e, b + 1)))),
         _ => panic!(format!("not supported: {:?}", e))
     };
     Ok(res)
+}
+
+pub fn execute_expr(state: &State, e: &Expr, w: u32) -> Result<Value,()> {
+    unsafe {
+        if MASKS_ALL.is_null() || MASKS_BIT.is_null() {
+            init_masks();
+        }
+    }
+    execute_expr_2(state, e, w)
 }
 
 // Fillers
@@ -681,13 +790,13 @@ mod tests {
     #[test]
     fn test_Neg(){
         let v = Value { width: 32, value: 0x1000_0000u32.to_biguint().unwrap() };
-        let vres = execute_unop(OpUnary::Neg, &v);
+        let vres = execute_unop(OpUnary::Neg, &v, 32);
         assert_eq!(vres.value, 0xf000_0000u32.to_biguint().unwrap());
     }
     #[test]
     fn test_Not(){
         let v = Value { width: 32, value: 0x1000_0000u32.to_biguint().unwrap() };
-        let vres = execute_unop(OpUnary::Not, &v);
+        let vres = execute_unop(OpUnary::Not, &v, 32);
         assert_eq!(vres.value, 0xefFF_ffFFu32.to_biguint().unwrap());
     }
     #[test]
@@ -735,7 +844,7 @@ mod tests {
         let state = State::borrow(&h);
 
         let op = Bit(24, Box::new(e.clone()));
-        let vres = execute_expr(&state, &op);
+        let vres = execute_expr(&state, &op, 32);
 
         assert_eq!(vres.unwrap().value, 0x1.to_biguint().unwrap());
     }
@@ -748,7 +857,7 @@ mod tests {
         let state = State::borrow(&h);
 
         let op = Bit(7, Box::new(e.clone()));
-        let vres = execute_expr(&state, &op);
+        let vres = execute_expr(&state, &op, 32);
 
         assert_eq!(vres.unwrap().value, 0.to_biguint().unwrap());
     }

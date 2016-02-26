@@ -5,7 +5,6 @@ pub type Address = u64;
 pub type Width = u32;
 pub type Literal = BigUint;
 pub type ILiteral = i16;
-
 pub type Name = String;
 
 #[derive(Copy,Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
@@ -18,7 +17,7 @@ pub enum FloatType {
 #[derive(Copy,Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub enum ExprType {
     Float(FloatType),
-    Int(u32)
+    Int(Width)
 }
 
 impl ExprType {
@@ -29,32 +28,41 @@ impl ExprType {
             _ => panic!("not supported")
         }
     }
+
+    /// Get width
+    pub fn get_width(&self) -> u32 {
+        match *self {
+            ExprType::Int(w) => w,
+            ExprType::Float(FloatType::Single) => 32,
+            ExprType::Float(FloatType::Double) => 64,
+            ExprType::Float(FloatType::Fp80) => 80
+        }
+    }
 }
 
 /// Expressions allowed in our IR
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub enum Expr {
     // Basics
-    Reg(Name, u32),
+    Reg(Name, Width),
     // These both are bitvectors transformations
     Float(Literal, FloatType),
     Int(Literal),
 
     // A bitvector constant of specified width
-    Const(Literal, u32),
+    Const(Literal, Width),
 
     // The idea is that this value is expnded then to the width needed
     IInt(ILiteral),
 
     // Deref a piece of memory of width
-    Deref(Box<Expr>, u32),
+    Deref(Box<Expr>, Width),
 
     // Ops
-    //ArithOp(OpArith, Box<Expr>, Box<Expr>, ExprType),
     ArithOp(OpArith, Box<Expr>, Box<Expr>, ExprType),
-    LogicOp(OpLogic, Box<Expr>, Box<Expr>),
-    UnOp(OpUnary, Box<Expr>),
-    BoolOp(OpBool, Box<Expr>, Box<Expr>),
+    LogicOp(OpLogic, Box<Expr>, Box<Expr>, Width),
+    UnOp(OpUnary, Box<Expr>, Width),
+    BoolOp(OpBool, Box<Expr>, Box<Expr>, Width),
 
     // XXX_ not sure what NoOp has to do here, what does it express?
     NoOp,
@@ -111,9 +119,15 @@ impl Expr {
             _ => false,
         }
     }
+    pub fn is_logicop(&self) -> bool {
+        match *self {
+            LogicOp(_, _, _, _) => true,
+            _ => false,
+        }
+    }
     pub fn is_boolop(&self) -> bool {
         match *self {
-            BoolOp(_, _, _) => true,
+            BoolOp(_, _, _, _) => true,
             _ => false,
         }
     }
@@ -155,17 +169,19 @@ impl Expr {
     pub fn get_width(&self) -> Option<u32> {
         match *self {
             Reg(_, w) | Deref(_, w) |
-            ArithOp(_, _, _, ExprType::Int(w)) => Some(w),
-            LogicOp(_, ref e1, _) | UnOp(_, ref e1) |
+            ArithOp(_, _, _, ExprType::Int(w)) |
+            UnOp(_, _, w) | LogicOp(_, _, _, w) |
+            // XXX_ BoolOp should be 1 or w?
+            BoolOp(_, _, _, w) => Some(w),
             ITE(_, ref e1, _)
                 => e1.get_width(),
-            BoolOp(_, _, _) | Overflow(_, _, _, _) |
+            Overflow(_, _, _, _) |
             Bit(_, _) => Some(1),
             Bits(b1, b2, _) => Some(b2 - b1 + 1),
             NoOp => None,
             Int(_) | IInt(_) => None,
             // XXX_ cast is width-defined actually
-            Cast(_, _, _) => None,
+            //Cast(_, _, _) => None,
             _ => unreachable!()
             //_ => panic!(format!("not supported: {:?}", self))
         }
@@ -199,8 +215,8 @@ impl Expr {
         let mut res = Vec::new();
         match *self {
             ArithOp(_, ref e1, ref e2, _) |
-            LogicOp(_, ref e1, ref e2) |
-            BoolOp(_, ref e1, ref e2) => {
+            LogicOp(_, ref e1, ref e2, _) |
+            BoolOp(_, ref e1, ref e2, _) => {
                 res.push(&**e1);
                 res.push(&**e2);
             }
@@ -233,8 +249,8 @@ impl Expr {
         }
         match *self {
             ArithOp(_, ref e1, ref e2, _) |
-            LogicOp(_, ref e1, ref e2) |
-            BoolOp(_, ref e1, ref e2) => {
+            LogicOp(_, ref e1, ref e2, _) |
+            BoolOp(_, ref e1, ref e2, _) => {
                 e1.get_something(res, f);
                 e2.get_something(res, f);
             }
@@ -336,6 +352,9 @@ impl EPoints {
     pub fn get_bin(&self) -> &[Vec<u8>] {
         &self.bin
     }
+    pub fn get_ty(&self) -> &[Vec<u8>] {
+        &self.ty
+    }
     pub fn insert_expr(&mut self) {
         self.expr.push(self.pos.to_vec())
     }
@@ -373,24 +392,21 @@ pub fn traverse_get_points(
         Int(_) | IInt(_) =>
             state.insert_const(),
         ArithOp(_, ref e1, ref e2, _) |
-        LogicOp(_, ref e1, ref e2) |
-        BoolOp(_, ref e1, ref e2) => {
-            if e.is_arithop() {
-                state.insert_ty();
-            }
+        LogicOp(_, ref e1, ref e2, _) |
+        BoolOp(_, ref e1, ref e2, _) => {
+            state.insert_ty();
             state.insert_op();
             state.insert_bin();
             state.push(1); traverse_get_points(state, e1); state.pop();
             state.push(2); traverse_get_points(state, e2); state.pop();
         },
-        UnOp(_, ref e1) | Cast(_, _, ref e1) => {
-            if e.is_cast() {
-                state.insert_ty();
-            }
+        UnOp(_, ref e1, _) | Cast(_, _, ref e1) => {
+            state.insert_ty();
             state.insert_op();
             state.push(1); traverse_get_points(state, e1); state.pop();
         },
         Bit(_, ref e1) | Bits(_, _, ref e1) => {
+            state.insert_ty();
             state.insert_bit();
             state.push(1); traverse_get_points(state, e1); state.pop();
         },
@@ -429,12 +445,12 @@ pub fn traverse_get_size (
     state.insert_expr();
     match *e {
         ArithOp(_, ref e1, ref e2, _) |
-        LogicOp(_, ref e1, ref e2) |
-        BoolOp(_, ref e1, ref e2) => {
+        LogicOp(_, ref e1, ref e2, _) |
+        BoolOp(_, ref e1, ref e2, _) => {
             state.push(1); traverse_get_size(state, e1); state.pop();
             state.push(2); traverse_get_size(state, e2); state.pop();
         },
-        UnOp(_, ref e1) | Cast(_, _, ref e1) |
+        UnOp(_, ref e1, _) | Cast(_, _, ref e1) |
         Bit(_, ref e1) | Bits(_, _, ref e1) => {
             state.push(1); traverse_get_size(state, e1); state.pop();
         },
@@ -453,12 +469,12 @@ macro_rules! visit_ops {
         match *$matched {
             ArithOp(o, ref e1, ref e2, et) =>
                 ArithOp(o, $v_left(e1), $v_right(e2), et),
-            LogicOp(o, ref e1, ref e2) =>
-                LogicOp(o, $v_left(e1), $v_right(e2)),
-            BoolOp(o, ref e1, ref e2) =>
-                BoolOp(o, $v_left(e1), $v_right(e2)),
-            UnOp(o, ref e) =>
-                UnOp(o, $v_right(e)),
+            LogicOp(o, ref e1, ref e2, et) =>
+                LogicOp(o, $v_left(e1), $v_right(e2), et),
+            BoolOp(o, ref e1, ref e2, et) =>
+                BoolOp(o, $v_left(e1), $v_right(e2), et),
+            UnOp(o, ref e, et) =>
+                UnOp(o, $v_right(e), et),
             ITE(ref eb, ref e1, ref e2) =>
                 ITE(eb.clone(), $v_left(e1), $v_right(e2)),
             _ => $matched.clone()

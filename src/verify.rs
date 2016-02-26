@@ -73,7 +73,7 @@ pub fn translate_ite<'a>(z3: &'a Z3Store<'a>, b: &Z3Ast, a1: &Z3Ast, a2: &Z3Ast)
 }
 
 /// Translate BoolOp to SMT logic
-pub fn translate_boolop<'a>(z3: &'a Z3Store<'a>, op: OpBool, a1: &Z3Ast, a2: &Z3Ast) -> Z3Ast<'a> {
+pub fn translate_boolop<'a>(z3: &'a Z3Store<'a>, op: OpBool, a1: &Z3Ast, a2: &Z3Ast, w: u32) -> Z3Ast<'a> {
     let ctx = z3.z3();
     let (a1, a2) = if a1.get_bv_width() != a2.get_bv_width() {
         let max = cmp::max(a1.get_bv_width(), a2.get_bv_width());
@@ -97,7 +97,7 @@ pub fn translate_boolop<'a>(z3: &'a Z3Store<'a>, op: OpBool, a1: &Z3Ast, a2: &Z3
 }
 
 /// Translate UnOp to SMT logic
-pub fn translate_unop<'a>(z3: &'a Z3Store<'a>, op: OpUnary, a: &Z3Ast) -> Z3Ast<'a> {
+pub fn translate_unop<'a>(z3: &'a Z3Store<'a>, op: OpUnary, a: &Z3Ast, width: u32) -> Z3Ast<'a> {
     let ctx = z3.z3();
     match op {
         OpUnary::Neg => ctx.bvneg(&a),
@@ -106,7 +106,7 @@ pub fn translate_unop<'a>(z3: &'a Z3Store<'a>, op: OpUnary, a: &Z3Ast) -> Z3Ast<
 }
 
 /// Translate LogicOp to SMT logic
-pub fn translate_logicop<'a>(z3: &'a Z3Store<'a>, op: OpLogic, a1: &Z3Ast, a2: &Z3Ast) -> Z3Ast<'a> {
+pub fn translate_logicop<'a>(z3: &'a Z3Store<'a>, op: OpLogic, a1: &Z3Ast, a2: &Z3Ast, width: u32) -> Z3Ast<'a> {
     let ctx = z3.z3();
     let (a1, a2) = if a1.get_bv_width() != a2.get_bv_width() {
         let max = cmp::max(a1.get_bv_width(), a2.get_bv_width());
@@ -178,17 +178,15 @@ pub fn translate_arithop<'a>(z3: &'a Z3Store<'a>, op: OpArith, a1: &Z3Ast, a2: &
 }
 
 /// Translate BigUint to SMT logic
-pub fn translate_biguint<'a>(z3: &'a Z3Store<'a>, a: &BigUint) -> Z3Ast<'a> {
+pub fn translate_biguint<'a>(z3: &'a Z3Store<'a>, a: &BigUint, w: u32) -> Z3Ast<'a> {
     let ctx = z3.z3();
     let numstr = a.to_string();
-    // XXX_ width
-    ctx.mk_bv_const_str(&numstr, 32)
+    ctx.mk_bv_const_str(&numstr, w)
 }
 /// Translate Number to SMT logic
-pub fn translate_int<'a>(z3: &'a Z3Store<'a>, a: i32) -> Z3Ast<'a> {
+pub fn translate_int<'a>(z3: &'a Z3Store<'a>, a: i32, w: u32) -> Z3Ast<'a> {
     let ctx = z3.z3();
-    // XXX_ width
-    ctx.mk_bv_const_i(a.to_i32().unwrap(), 32)
+    ctx.mk_bv_const_i(a.to_i32().unwrap(), w)
 }
 
 /// Translate bit extraction to SMT logic
@@ -205,46 +203,49 @@ pub fn translate_bits<'a>(z3: &'a Z3Store<'a>, high: u32, low: u32, e: &Z3Ast)
 }
 
 /// Translate to SMT logic
-pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr) -> Z3Ast<'a> {
+pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr, w: u32) -> Z3Ast<'a> {
     use expr::Expr::*;
     //println!("processing: {:?}", e);
     let res = match *e {
         Reg(_, _) => z3.get_expr(e),
-        // XXX_ check
-        Int(ref i) => translate_biguint(z3, i),
-        // XXX_ check
-        IInt(i) => translate_int(z3, i as i32),
-        ArithOp(o, ref e1, ref e2, et) =>
+        Int(ref i) => translate_biguint(z3, i, w),
+        IInt(i) => translate_int(z3, i as i32, w),
+        ArithOp(o, ref e1, ref e2, et) => {
+            let w = et.get_width();
             translate_arithop(z3,
                               o,
-                              &translate(z3, &*e1),
-                              &translate(z3, &*e2),
-                              et),
-        LogicOp(o, ref e1, ref e2) =>
+                              &translate(z3, &*e1, w),
+                              &translate(z3, &*e2, w),
+                              et)
+        },
+        LogicOp(o, ref e1, ref e2, w) =>
             translate_logicop(z3,
                               o,
-                              &translate(z3, &*e1),
-                              &translate(z3, &*e2)),
-        BoolOp(o, ref e1, ref e2) =>
+                              &translate(z3, &*e1, w),
+                              &translate(z3, &*e2, w),
+                              w),
+        BoolOp(o, ref e1, ref e2, w) =>
             translate_boolop(z3,
                              o,
-                              &translate(z3, &*e1),
-                              &translate(z3, &*e2)),
-        UnOp(o, ref e) =>
+                             &translate(z3, &*e1, w),
+                             &translate(z3, &*e2, w),
+                             w),
+        UnOp(o, ref e, w) =>
             translate_unop(z3,
                            o,
-                           &translate(z3, &*e)),
+                           &translate(z3, &*e, w),
+                           w),
         ITE(ref eb, ref e1, ref e2) =>
             translate_ite(z3,
-                          &translate(z3, &*eb),
-                          &translate(z3, &*e1),
-                          &translate(z3, &*e2)),
+                          &translate(z3, &*eb, 1),
+                          &translate(z3, &*e1, w),
+                          &translate(z3, &*e2, w)),
         Bit(b, ref e) => translate_bits(z3,
                                         b, b,
-                                        &translate(z3, &*e)),
+                                        &translate(z3, &*e, b + 1)),
         Bits(high, low, ref e) => translate_bits(z3,
                                               high, low,
-                                              &translate(z3, &*e)),
+                                              &translate(z3, &*e, high + 1)),
         _ => panic!(format!("not supported: {:?}", e))
     };
     //println!("res: {}", res);
@@ -253,10 +254,10 @@ pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr) -> Z3Ast<'a> {
 }
 
 /// Check if e1 and e1 are equal
-pub fn are_equal(e1: &Expr, e2: &Expr) -> bool {
+pub fn are_equal(e1: &Expr, e2: &Expr, width: u32) -> bool {
     let z3 = Z3Store::new();
-    let ast1 = translate(&z3, e1);
-    let ast2 = translate(&z3, e2);
+    let ast1 = translate(&z3, e1, width);
+    let ast2 = translate(&z3, e2, width);
     let ctx = z3.z3();
     let eq = ctx.eq(&ast1, &ast2);
     let model = ctx.check_and_get_model(&eq);
@@ -270,12 +271,12 @@ pub fn are_equal(e1: &Expr, e2: &Expr) -> bool {
 }
 
 /// Check if e1 and e1 are equal and return a counterexample
-pub fn equal_or_counter(e1: &Expr, e2: &Expr)
+pub fn equal_or_counter(e1: &Expr, e2: &Expr, width: u32)
                         -> Option<HashMap<Expr,BigUint>>
 {
     let z3 = Z3Store::new();
-    let ast1 = translate(&z3, e1);
-    let ast2 = translate(&z3, e2);
+    let ast1 = translate(&z3, e1, width);
+    let ast2 = translate(&z3, e2, width);
     let ctx = z3.z3();
 
     println!("ast1: {:?}\nast2: {:?}", ast1, ast2);
@@ -321,7 +322,7 @@ mod test {
         let b2 = Box::new(e2);
         let a1 = Expr::ArithOp(OpArith::Add, b1.clone(), b2.clone(), ExprType::Int(32));
         let a2 = Expr::ArithOp(OpArith::Add, b2.clone(), b1.clone(), ExprType::Int(32));
-        assert_eq!(are_equal(&a1, &a2), true);
+        assert_eq!(are_equal(&a1, &a2, 32), true);
     }
 
     #[test]
@@ -332,7 +333,7 @@ mod test {
         let b2 = Box::new(e2);
         let a1 = Expr::ArithOp(OpArith::Add, b1.clone(), b2.clone(), ExprType::Int(32));
         let a2 = Expr::ArithOp(OpArith::Sub, b1.clone(), b2.clone(), ExprType::Int(32));
-        assert_eq!(are_equal(&a1, &a2), false);
+        assert_eq!(are_equal(&a1, &a2, 32), false);
     }
 
     #[test]
@@ -343,7 +344,7 @@ mod test {
         let b2 = Box::new(e2);
         let a1 = Expr::ArithOp(OpArith::Sub, b1.clone(), b2.clone(), ExprType::Int(32));
         let a2 = Expr::ArithOp(OpArith::Sub, b2.clone(), b1.clone(), ExprType::Int(32));
-        assert_eq!(are_equal(&a1, &a2), false);
+        assert_eq!(are_equal(&a1, &a2, 32), false);
     }
 
     #[test]
@@ -358,8 +359,8 @@ mod test {
             OpArith::Sub, b1.clone(), one.clone(), ExprType::Int(32));
         let a2 = ArithOp(
             OpArith::Sub, b2.clone(), two.clone(), ExprType::Int(32));
-        assert_eq!(are_equal(&a1, &a2), false);
-        let diffs = equal_or_counter(&a1, &a2);
+        assert_eq!(are_equal(&a1, &a2, 32), false);
+        let diffs = equal_or_counter(&a1, &a2, 32);
         println!("diffs: {:?}", diffs);
     }
     #[test]
@@ -385,8 +386,8 @@ mod test {
                          a0.clone(),
                          one.clone(),
                          ExprType::Int(32));
-        assert_eq!(are_equal(&a1, &a2), true);
-        assert_eq!(equal_or_counter(&a1, &a2), None);
+        assert_eq!(are_equal(&a1, &a2, 32), true);
+        assert_eq!(equal_or_counter(&a1, &a2, 32), None);
         //println!("diffs: {:?}", diffs);
     }
 

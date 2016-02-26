@@ -600,7 +600,7 @@ impl<'a, T: Native> Work<'a, T> {
             let mut stoc = Stochastic::new(&expr_inits,
                                            &io_set_e,
                                            dep.get_bit_width());
-            stoc.set_max_secs(20.0);
+            stoc.set_max_secs(600.0);
             stoc.work();
             let val = stoc.get_expr();
             exprs.push(val);
@@ -633,12 +633,13 @@ impl<'a, T: Native> Work<'a, T> {
     /// the expected outputs match with the obtained ones
     fn emulate_expected(&self,
                         e: &Expr,
+                        width: u32,
                         io_set: &IOSet<Dep, BigUint>,
                         others: &[&Expr]) -> bool
     {
         let io_set_e = self.ioset_to_res_var_val(io_set);
         for (ref expected, ref io_set) in io_set_e {
-            if let Ok(res) = execute_expr(&State::borrow(io_set), e) {
+            if let Ok(res) = execute_expr(&State::borrow(io_set), e, width) {
                 if res.value() == expected {
                     continue;
                 } else {
@@ -654,10 +655,11 @@ impl<'a, T: Native> Work<'a, T> {
     /// Emulate the Expr once and return the result
     fn emulate_once(&self,
                     e: &Expr,
+                    width: u32,
                     inputs: &HashMap<Expr, BigUint>)
                     -> Result<BigUint, ()>
     {
-        if let Ok(res) = execute_expr(&State::borrow(inputs), e) {
+        if let Ok(res) = execute_expr(&State::borrow(inputs), e, width) {
             Ok(res.value().clone())
         } else {
             Err(())
@@ -724,7 +726,9 @@ impl<'a, T: Native> Work<'a, T> {
             let snd = exprs.remove(0);
             println!("Verify new round\nfst: {:?}\nsnd: {:?}", fst, snd);
 
-            if let Some(counter) = equal_or_counter(fst, snd) {
+            if let Some(counter) =
+                equal_or_counter(fst, snd, dep.get_bit_width())
+            {
                 println!("Different\nCounter: {:?}", counter);
                 let mut counter_m: HashMap<Dep, BigUint> = HashMap::new();
                 let _ = counter.iter()
@@ -736,14 +740,18 @@ impl<'a, T: Native> Work<'a, T> {
                     io_set.push((counter_m, ex_res.clone()));
                     let mut count = 0;
                     println!("real_res: {:?}", ex_res);
-                    if let Ok(em_res) = self.emulate_once(fst, &counter) {
+                    if let Ok(em_res) = self.emulate_once(
+                        fst, dep.get_bit_width(), &counter)
+                    {
                         println!("fst_res: {:?}", em_res);
                         if em_res == ex_res {
                             count += 1;
                             exprs.push(fst);
                         }
                     } else { panic!("couldn't emulate expr") }
-                    if let Ok(em_res) = self.emulate_once(snd, &counter) {
+                    if let Ok(em_res) = self.emulate_once(
+                        snd, dep.get_bit_width(), &counter)
+                    {
                         println!("snd_res: {:?}", em_res);
                         if em_res == ex_res {
                             count += 1;
@@ -841,7 +849,7 @@ impl<'a, T: Native> Work<'a, T> {
             };
             progs.insert(self.dep_to_expr(&dep), exprs);
         }
-        println!("Programs: {:#?}", progs);
+        println!("Programs: {:?}", progs);
 
         println!("================######=============");
 

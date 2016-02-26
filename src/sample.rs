@@ -1,11 +1,13 @@
 use op::{OpArith, OpLogic, OpUnary, OpBool, OpCast,
          OPARITH, OPLOGIC, OPUNARY, OPBOOL, OPCAST};
 use expr::{Expr, ExprType, ILiteral};
+use utils::CloneWeightedChoice;
 
 use num::{BigUint};
 use num::traits::{Zero};
 use num::bigint::ToBigUint;
 use rand;
+use rand::distributions::{Weighted, IndependentSample};
 use rand::{Rng, ThreadRng};
 use std::iter::Iterator;
 
@@ -386,7 +388,22 @@ impl Iterator for DepValueSampler  {
 /// Sample random Expr
 pub struct RandExprSampler{
     base: Vec<Expr>,
-    rng: ThreadRng
+    rng: ThreadRng,
+    sample_choice: CloneWeightedChoice<EEWS>
+}
+
+#[derive(Clone,Debug)]
+enum EEWS {
+    Bit,
+    Bits,
+    Arith,
+    Logic,
+    Un,
+    ITE,
+    Bool,
+    Cast,
+    Ex,
+    IInt
 }
 
 impl RandExprSampler {
@@ -394,7 +411,30 @@ impl RandExprSampler {
         let rng = rand::thread_rng();
         RandExprSampler {
             base: base.to_vec(),
-            rng: rng
+            rng: rng,
+            sample_choice: CloneWeightedChoice::new(&[
+                Weighted{item: EEWS::Bit, weight: 1},
+                Weighted{item: EEWS::Bits, weight: 1},
+                Weighted{item: EEWS::Arith, weight: 1},
+                Weighted{item: EEWS::Logic, weight: 1},
+                Weighted{item: EEWS::Un, weight: 1},
+                Weighted{item: EEWS::ITE, weight: 1},
+                //Weighted{item: EEWS::Bool, weight: 0},
+                //Weighted{item: EEWS::Cast, weight: 1},
+                Weighted{item: EEWS::Ex, weight: 1},
+                Weighted{item: EEWS::IInt, weight: 1}
+                // Weighted{item: EEWS::Bit, weight: 5},
+                // Weighted{item: EEWS::Bits, weight: 5},
+                // Weighted{item: EEWS::Arith, weight: 10},
+                // Weighted{item: EEWS::Logic, weight: 10},
+                // Weighted{item: EEWS::Un, weight: 5},
+                // Weighted{item: EEWS::ITE, weight: 1},
+                // //Weighted{item: EEWS::Bool, weight: 0},
+                // //Weighted{item: EEWS::Cast, weight: 1},
+                // Weighted{item: EEWS::Ex, weight: 5},
+                // Weighted{item: EEWS::IInt, weight: 5}
+                ]
+                                                    )
         }
     }
 
@@ -458,7 +498,7 @@ impl RandExprSampler {
     pub fn sample_castop(&mut self) -> OpCast {
         self.sample_from_arr(&OPCAST)
     }
-    fn sample_bit(&mut self, max: Option<u32>) -> u32 {
+    pub fn sample_bit(&mut self, max: Option<u32>) -> u32 {
         let max =
             if max.is_none() {
                 self.sample_const()
@@ -467,7 +507,7 @@ impl RandExprSampler {
             };
         self.rng.gen_range(0, max)
     }
-    fn sample_bits(&mut self, range: Option<u32>, max: Option<u32>)
+    pub fn sample_bits(&mut self, range: Option<u32>, max: Option<u32>)
                    -> (u32, u32)
     {
         let (range, max) =
@@ -486,12 +526,25 @@ impl RandExprSampler {
         self.sample_from_arr(&values)
     }
     pub fn sample_ty(&mut self, width: Option<u32>) -> ExprType {
+        // XXX_ add float
         ExprType::Int(
             if let Some(w) = width {
                 w
             } else {
                 self.sample_const()
             })
+    }
+
+    pub fn sample_width(&mut self, width: Option<u32>) -> u32 {
+        if let Some(w) = width {
+            if self.rng.gen_range(0, 10) > 7 {
+                self.sample_const()
+            } else {
+                w
+            }
+        } else {
+            self.sample_const()
+        }
     }
 
     pub fn sample_expr_w_with_leafs(&mut self, leafs: &mut Vec<&Expr>,
@@ -522,8 +575,8 @@ impl RandExprSampler {
 
         match new_e {
             ArithOp(_, ref mut e1, ref mut e2, _) |
-            LogicOp(_,ref mut e1, ref mut e2) |
-            BoolOp(_, ref mut e1, ref mut e2) => {
+            LogicOp(_,ref mut e1, ref mut e2, _) |
+            BoolOp(_, ref mut e1, ref mut e2, _) => {
                 if self.rng.gen::<bool>() {
                     leaf_or_e!(e1, leafs);
                     leaf_or_e!(e2, leafs);
@@ -532,7 +585,7 @@ impl RandExprSampler {
                     leaf_or_e!(e1, leafs);
                 }
             },
-            UnOp(_, ref mut e1) | Cast(_, _, ref mut e1) |
+            UnOp(_, ref mut e1, _) | Cast(_, _, ref mut e1) |
             Bit(_, ref mut e1) | Bits(_, _, ref mut e1) => {
                 leaf_or_e!(e1, leafs);
             },
@@ -553,44 +606,46 @@ impl RandExprSampler {
     pub fn sample_boolexpr(&mut self) -> Expr {
         Expr::BoolOp(self.sample_boolop(),
                      Box::new(self.sample_ex()),
-                     Box::new(self.sample_ex()))
+                     Box::new(self.sample_ex()),
+                     self.sample_width(None))
     }
 
     pub fn sample_expr_w(&mut self, width: Option<u32>) -> Expr {
-        let val = self.rng.gen_range(0,
-                                     9 + OPLOGIC.len() + OPARITH.len() +
-                                     OPBOOL.len() + OPUNARY.len());
-
-        //let val = self.rng.gen_range(0, 10);
-        // XXX_ avoiding generating Cast (should be 10 instead of 9)
-        let val = self.rng.gen_range(0, 50);
-        match val {
-            0...7 => self.sample_ex(),
-            8...15 => Expr::IInt(self.sample_literal()),
-            16...23=> {
+        let n_width = self.sample_width(width);
+        match self.sample_choice.ind_sample(&mut self.rng) {
+            EEWS::Ex => self.sample_ex(),
+            EEWS::IInt => Expr::IInt(self.sample_literal()),
+            EEWS::Bits => {
                 let e = self.sample_base();
                 let w_e = e.get_width();
                 let (bit1, bit2) = self.sample_bits(width, w_e);
                 Expr::Bits(bit1, bit2, Box::new(e))
             }
-            24...27 => {
+            EEWS::Bit => {
                 let e = self.sample_base();
                 let w = e.get_width();
                 let bit = self.sample_bit(w);
                 Expr::Bit(bit, Box::new(e))
             }
-            30...37 => Expr::ArithOp(self.sample_arithop(),
+            EEWS::Arith => Expr::ArithOp(self.sample_arithop(),
                                Box::new(self.sample_ex()),
                                Box::new(self.sample_ex()),
                                self.sample_ty(width)),
-            38...45 => Expr::LogicOp(self.sample_logicop(),
-                               Box::new(self.sample_ex()),
-                               Box::new(self.sample_ex())),
-            45...48 => Expr::UnOp(self.sample_unop(),
-                            Box::new(self.sample_ex())),
-            49 => Expr::ITE(Box::new(self.sample_boolexpr()),
-                           Box::new(self.sample_ex()),
-                           Box::new(self.sample_ex())),
+            EEWS::Logic => Expr::LogicOp(self.sample_logicop(),
+                                         Box::new(self.sample_ex()),
+                                         Box::new(self.sample_ex()),
+                                         // XXX_ fixme
+                                         n_width),
+            EEWS::Un => Expr::UnOp(self.sample_unop(),
+                                   Box::new(self.sample_ex()),
+                                   // XXX_ fixme
+                                   n_width),
+            EEWS::ITE => Expr::ITE(Box::new(self.sample_boolexpr()),
+                                   Box::new(self.sample_ex()),
+                                   Box::new(self.sample_ex())),
+            EEWS::Cast => Expr::Cast(self.sample_castop(),
+                                     self.sample_ty(width),
+                                     Box::new(self.sample_ex())),
             // 8 => Expr::BoolOp(self.sample_boolop(),
             //                   Box::new(self.sample_ex()),
             //                   Box::new(self.sample_ex())),
@@ -599,7 +654,8 @@ impl RandExprSampler {
             //                 Box::new(self.sample_ex())),
             // XXX_ actually calculate this again!
             //_ => unreachable!()
-            _ => self.sample_ex()
+            wc => panic!(format!("not supported: {:?}", wc))
+
         }
     }
 
