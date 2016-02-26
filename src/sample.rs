@@ -413,26 +413,26 @@ impl RandExprSampler {
             base: base.to_vec(),
             rng: rng,
             sample_choice: CloneWeightedChoice::new(&[
-                Weighted{item: EEWS::Bit, weight: 1},
-                Weighted{item: EEWS::Bits, weight: 1},
-                Weighted{item: EEWS::Arith, weight: 1},
-                Weighted{item: EEWS::Logic, weight: 1},
-                Weighted{item: EEWS::Un, weight: 1},
-                Weighted{item: EEWS::ITE, weight: 1},
-                //Weighted{item: EEWS::Bool, weight: 0},
-                //Weighted{item: EEWS::Cast, weight: 1},
-                Weighted{item: EEWS::Ex, weight: 1},
-                Weighted{item: EEWS::IInt, weight: 1}
-                // Weighted{item: EEWS::Bit, weight: 5},
-                // Weighted{item: EEWS::Bits, weight: 5},
-                // Weighted{item: EEWS::Arith, weight: 10},
-                // Weighted{item: EEWS::Logic, weight: 10},
-                // Weighted{item: EEWS::Un, weight: 5},
+                // Weighted{item: EEWS::Bit, weight: 1},
+                // Weighted{item: EEWS::Bits, weight: 1},
+                // Weighted{item: EEWS::Arith, weight: 1},
+                // Weighted{item: EEWS::Logic, weight: 1},
+                // Weighted{item: EEWS::Un, weight: 1},
                 // Weighted{item: EEWS::ITE, weight: 1},
                 // //Weighted{item: EEWS::Bool, weight: 0},
-                // //Weighted{item: EEWS::Cast, weight: 1},
-                // Weighted{item: EEWS::Ex, weight: 5},
-                // Weighted{item: EEWS::IInt, weight: 5}
+                // Weighted{item: EEWS::Cast, weight: 1},
+                // Weighted{item: EEWS::Ex, weight: 1},
+                // Weighted{item: EEWS::IInt, weight: 1}
+                Weighted{item: EEWS::Bit, weight: 5},
+                Weighted{item: EEWS::Bits, weight: 5},
+                Weighted{item: EEWS::Arith, weight: 10},
+                Weighted{item: EEWS::Logic, weight: 10},
+                Weighted{item: EEWS::Un, weight: 5},
+                Weighted{item: EEWS::ITE, weight: 1},
+                //Weighted{item: EEWS::Bool, weight: 0},
+                Weighted{item: EEWS::Cast, weight: 4},
+                Weighted{item: EEWS::Ex, weight: 5},
+                Weighted{item: EEWS::IInt, weight: 5}
                 ]
                                                     )
         }
@@ -571,7 +571,6 @@ impl RandExprSampler {
                 break;
             }
         }
-        // new_e = self.sample_expr_w(width);
 
         match new_e {
             ArithOp(_, ref mut e1, ref mut e2, _) |
@@ -585,7 +584,7 @@ impl RandExprSampler {
                     leaf_or_e!(e1, leafs);
                 }
             },
-            UnOp(_, ref mut e1, _) | Cast(_, _, ref mut e1) |
+            UnOp(_, ref mut e1, _) | Cast(_, ref mut e1, _) |
             Bit(_, ref mut e1) | Bits(_, _, ref mut e1) => {
                 leaf_or_e!(e1, leafs);
             },
@@ -644,15 +643,8 @@ impl RandExprSampler {
                                    Box::new(self.sample_ex()),
                                    Box::new(self.sample_ex())),
             EEWS::Cast => Expr::Cast(self.sample_castop(),
-                                     self.sample_ty(width),
-                                     Box::new(self.sample_ex())),
-            // 8 => Expr::BoolOp(self.sample_boolop(),
-            //                   Box::new(self.sample_ex()),
-            //                   Box::new(self.sample_ex())),
-            // 9 => Expr::Cast(self.sample_castop(),
-            //                 self.sample_ty(width),
-            //                 Box::new(self.sample_ex())),
-            // XXX_ actually calculate this again!
+                                     Box::new(self.sample_ex()),
+                                     self.sample_ty(width)),
             //_ => unreachable!()
             wc => panic!(format!("not supported: {:?}", wc))
 

@@ -472,7 +472,7 @@ impl<'a> Transform<'a> {
             }
             Bit(ref mut b, _) =>
                 *b = self.sampler.sample_bit(None),
-            Cast(ref mut o, ref mut ty, ref e1) =>
+            Cast(_, _, ref mut ty) =>
                 *ty = self.sampler.sample_ty(None),
             _ => panic!(format!("replace type supported: {:?}", e))
         };
@@ -489,7 +489,7 @@ impl<'a> Transform<'a> {
                 *o = self.sampler.sample_boolop(),
             UnOp(ref mut o, ref e1, _) =>
                 *o = self.sampler.sample_unop(),
-            Cast(ref mut o, ref mut ty, ref e1) =>
+            Cast(ref mut o, _, _) =>
                 *o = self.sampler.sample_castop(),
             _ => panic!(format!("replace op supported: {:?}", e))
         };
@@ -547,7 +547,7 @@ impl<'a> Transform<'a> {
                             "binary operator and p({})!=[1;2]", p));
                     }
                 },
-                UnOp(_, ref mut e1, _) | Cast(_, _, ref mut e1) |
+                UnOp(_, ref mut e1, _) | Cast(_, ref mut e1, _) |
                 Bit(_, ref mut e1) | Bits(_, _, ref mut e1) =>
                 {
                     self.transform_op3(e1, curr+1);

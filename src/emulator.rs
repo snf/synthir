@@ -473,16 +473,16 @@ fn execute_ite(state: &State, b: &Value, e1: &Expr, e2: &Expr, w: u32)
     }
 }
 
-// XXX_ implement
+/// Cast value to other type/width
 fn execute_cast(op: OpCast, et: ExprType, v: &Value) -> Result<Value,()> {
+    // XXX_ implement floating point
     let ty_w = et.get_int_width();
     match op {
         OpCast::CastLow => {
             if ty_w > v.get_width() {
                 Err(())
             } else {
-                let mask = mask_n_bits(ty_w);
-                Ok(Value::new(v.value() & mask, ty_w))
+                Ok(adjust_width(v, ty_w, false))
             }
         }
         OpCast::CastHigh => {
@@ -493,8 +493,13 @@ fn execute_cast(op: OpCast, et: ExprType, v: &Value) -> Result<Value,()> {
                 Ok(Value::new(res, ty_w))
             }
         }
-        // XXX_ implement me
-        OpCast::CastSigned => Ok(v.clone()),
+        OpCast::CastSigned => {
+            if ty_w < v.get_width() {
+                Err(())
+            } else {
+                Ok(adjust_width(v, ty_w, true))
+            }
+        }
     }
 }
 
@@ -559,10 +564,10 @@ fn execute_expr_2(state: &State, e: &Expr, w: u32) -> Result<Value,()> {
                              e1,
                              e2,
                              w)),
-        Cast(o, ref et, ref e) => try!(
+        Cast(o, ref e, ref et) => try!(
             execute_cast(o, *et,
-                         // XXX_ which should be the width there?
-                         &try!(execute_expr(state, &*e, 128)))),
+                         // XXX_ width
+                         &try!(execute_expr(state, &*e, 1024)))),
         Bits(high, low, ref e) => try!(
             execute_bits(high, low, &try!(execute_expr(state, &*e, high + 1)))),
         Bit(b, ref e) => try!(

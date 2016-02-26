@@ -71,7 +71,7 @@ pub enum Expr {
     // Control
     ITE(Box<Expr>, Box<Expr>, Box<Expr>),
     // Casting
-    Cast(OpCast, ExprType, Box<Expr>),
+    Cast(OpCast, Box<Expr>, ExprType),
     Bits(u32, u32, Box<Expr>),
     // Syntax sugar
     Bit(u32, Box<Expr>) // := Bits(i, i, Box<Expr>)
@@ -169,7 +169,6 @@ impl Expr {
     pub fn get_width(&self) -> Option<u32> {
         match *self {
             Reg(_, w) | Deref(_, w) |
-            ArithOp(_, _, _, ExprType::Int(w)) |
             UnOp(_, _, w) | LogicOp(_, _, _, w) |
             // XXX_ BoolOp should be 1 or w?
             BoolOp(_, _, _, w) => Some(w),
@@ -180,8 +179,8 @@ impl Expr {
             Bits(b1, b2, _) => Some(b2 - b1 + 1),
             NoOp => None,
             Int(_) | IInt(_) => None,
-            // XXX_ cast is width-defined actually
-            //Cast(_, _, _) => None,
+            ArithOp(_, _, _, ref ty) |
+            Cast(_, _, ref ty) => Some(ty.get_width()),
             _ => unreachable!()
             //_ => panic!(format!("not supported: {:?}", self))
         }
@@ -220,7 +219,7 @@ impl Expr {
                 res.push(&**e1);
                 res.push(&**e2);
             }
-            Cast(_, _, ref e) |
+            Cast(_, ref e, _) |
             Bit(_, ref e) | Bits(_, _, ref e) => {
                 res.push(&**e);
             }
@@ -254,7 +253,7 @@ impl Expr {
                 e1.get_something(res, f);
                 e2.get_something(res, f);
             }
-            Cast(_, _, ref e) |
+            Cast(_, ref e, _) |
             Bit(_, ref e) | Bits(_, _, ref e) => {
                 e.get_something(res, f);
             }
@@ -400,7 +399,7 @@ pub fn traverse_get_points(
             state.push(1); traverse_get_points(state, e1); state.pop();
             state.push(2); traverse_get_points(state, e2); state.pop();
         },
-        UnOp(_, ref e1, _) | Cast(_, _, ref e1) => {
+        UnOp(_, ref e1, _) | Cast(_, ref e1, _) => {
             state.insert_ty();
             state.insert_op();
             state.push(1); traverse_get_points(state, e1); state.pop();
@@ -450,7 +449,7 @@ pub fn traverse_get_size (
             state.push(1); traverse_get_size(state, e1); state.pop();
             state.push(2); traverse_get_size(state, e2); state.pop();
         },
-        UnOp(_, ref e1, _) | Cast(_, _, ref e1) |
+        UnOp(_, ref e1, _) | Cast(_, ref e1, _) |
         Bit(_, ref e1) | Bits(_, _, ref e1) => {
             state.push(1); traverse_get_size(state, e1); state.pop();
         },
