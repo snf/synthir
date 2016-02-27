@@ -16,6 +16,7 @@ libc = "0.2"
 time = "0.1"
 itertools = "0.4"
 permutohedron = "0.2"
+crossbeam = "0.2"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"

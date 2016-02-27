@@ -12,6 +12,7 @@ extern crate llvm_assemble;
 extern crate z3;
 extern crate itertools;
 extern crate permutohedron;
+extern crate crossbeam;
 extern crate synthir_execute as execute;
 
 extern crate test;

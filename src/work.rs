@@ -1,6 +1,8 @@
 use std::collections::{HashSet, HashMap};
+use std::sync::{Mutex};
 use num::traits::{One, Zero, ToPrimitive};
 use num::bigint::{ToBigUint, BigUint};
+use crossbeam;
 
 use emulator::{State, execute_expr};
 use expr::Expr;
@@ -590,22 +592,26 @@ impl<'a, T: Native> Work<'a, T> {
                            io_set: &IOSet<Dep, BigUint>)
                            -> Vec<Expr>
     {
-        let mut exprs = Vec::new();
+        let res = Mutex::new(Vec::new());
         let expr_inits = self.get_expr_ioset(io_set);
         let io_set_e = self.ioset_to_res_var_val(io_set);
         //println!("io_set_e: {:?}", io_set_e);
 
-        const MIN_EXPRS: u32 = 1;
-        for i in 0 .. MIN_EXPRS {
-            let mut stoc = Stochastic::new(&expr_inits,
-                                           &io_set_e,
-                                           dep.get_bit_width());
-            stoc.set_max_secs(600.0);
-            stoc.work();
-            let val = stoc.get_expr();
-            exprs.push(val);
-        }
-        exprs
+        const MIN_EXPRS: usize = 1;
+        crossbeam::scope(|scope| {
+            for i in 0 .. MIN_EXPRS {
+                scope.spawn(|| {
+                    let mut stoc = Stochastic::new(&expr_inits,
+                                                   &io_set_e,
+                                                   dep.get_bit_width());
+                    stoc.set_max_secs(600.0);
+                    stoc.work();
+                    let val = stoc.get_expr();
+                    res.lock().unwrap().push(val);
+                });
+            }
+        });
+        res.into_inner().unwrap()
     }
 
     /// Template search of the expression
