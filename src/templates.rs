@@ -87,22 +87,26 @@ struct SignTemplate;
 
 impl SignTemplate {
     fn sign_flag(e: &Expr, width: u32) -> Expr {
-        let width = {
-            match e.get_width() {
-                Some(w) => w,
-                None => width
-            }
-        };
+        let width = e.get_width().unwrap_or(width);
         let mask = BigUint::one() << ((width as usize) - 1);
         Expr::Bit(
             width - 1,
             Box::new(e.clone()))
     }
+
+    fn sign_flag_cast(e: &Expr, width: u32) -> Expr {
+        let width = e.get_width().unwrap_or(width);
+        Expr::Cast(
+            OpCast::CastHigh,
+            Box::new(e.clone()),
+            ExprType::Int(1))
+    }
 }
 
 impl Template2 for SignTemplate {
     fn exec(e: &[&Expr], width: u32) -> Vec<Expr> {
-        vec![Self::sign_flag(e[0], width)]
+        vec![Self::sign_flag(e[0], width),
+             Self::sign_flag_cast(e[0], width)]
     }
 
     fn args() -> u32 { 1 }
