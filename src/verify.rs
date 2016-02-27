@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::string::ToString;
 
 use expr::{Expr, ExprType};
-use op::{OpArith, OpLogic, OpUnary, OpBool};//, OpCast};
+use op::{OpArith, OpLogic, OpUnary, OpBool, OpCast};
 use z3::{Z3, Z3Ast};
 
 /// Owns a Z3 context and has a cache for storing Registers
@@ -202,6 +202,32 @@ pub fn translate_bits<'a>(z3: &'a Z3Store<'a>, high: u32, low: u32, e: &Z3Ast)
     ctx.extract(high, low, &e)
 }
 
+/// Translate Cast to SMT logic
+fn translate_cast<'a>(z3: &'a Z3Store<'a>, op: OpCast, e: &Z3Ast, et: ExprType)
+    -> Z3Ast<'a>
+{
+    // XXX_ implement float
+    let ctx = z3.z3();
+    let i_w = et.get_width();
+    match op {
+        OpCast::CastLow => {
+            ctx.extract(i_w, 0, e)
+        }
+        OpCast::CastHigh => {
+            let high = e.get_bv_width();
+            let low = high - i_w;
+            ctx.extract(high, low, e)
+        }
+        OpCast::CastSigned => {
+            if i_w < e.get_bv_width() {
+                panic!("CastSigned is only for increasing the width");
+            } else {
+                adjust_width(z3, e, i_w, true)
+            }
+        }
+    }
+}
+
 /// Translate to SMT logic
 pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr, w: u32) -> Z3Ast<'a> {
     use expr::Expr::*;
@@ -246,6 +272,11 @@ pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr, w: u32) -> Z3Ast<'a> {
         Bits(high, low, ref e) => translate_bits(z3,
                                               high, low,
                                               &translate(z3, &*e, high + 1)),
+        Cast(o, ref e, et) => translate_cast(z3,
+                                             o,
+                                             // XXX_ width
+                                             &translate(z3, &*e, 1024),
+                                             et),
         _ => panic!(format!("not supported: {:?}", e))
     };
     //println!("res: {}", res);
