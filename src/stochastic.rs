@@ -297,23 +297,28 @@ impl<'a> Cost<'a> {
     // XXX_ decide
     /// Get the distance from one value to another
     fn int_distance(&self, a: &BigUint, b: &BigUint) -> f64 {
-        if a == b {
-            0.0
-        } else {
-            let diff =
-                if a > b {
-                    a - b
-                } else {
-                    b - a
-                };
-            if let Some(diff) = diff.to_f64() {
-                // println!("diff: {}", diff);
-                // println!("ln_diff: {}", diff.ln());
-                diff.ln()
-                //diff
+        let diff =
+            if a == b {
+                0.0
             } else {
-                10.0
-            }
+                let diff =
+                    if a > b {
+                        a - b
+                    } else {
+                        b - a
+                    };
+                if let Some(diff) = diff.to_f64() {
+                    // println!("diff: {}", diff);
+                    // println!("ln_diff: {}", diff.ln());
+                    diff
+                } else {
+                    100.0
+                }
+            };
+        if diff > 8.0 {
+            8.0
+        } else {
+            diff
         }
     }
 
@@ -356,7 +361,7 @@ impl<'a> Cost<'a> {
                 if res != &io_res {
                     cost += MISALIGN_PENALTY;
                 }
-                //cost += self.int_distance(res, &io_res);
+                cost += self.int_distance(res, &io_res);
             } else {
                 return self.crash_cost();
             }
