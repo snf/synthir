@@ -64,7 +64,7 @@ impl Stochastic {
         moves.insert(Mov::Remove, 4);
         Stochastic {
             io_sets: io_sets.to_vec(),
-            beta: 0.4,
+            beta: 0.2,
             curr_cost: 10000.0,
             prev_expr: Expr::NoOp,
             curr_expr: Expr::NoOp,
@@ -321,8 +321,10 @@ impl<'a> Cost<'a> {
         0.0
     }
 
+    /// Return a high cost for expressions that crash, we should not
+    /// accept them
     fn crash_cost(&self) -> f64 {
-        100.0
+        10000.0
     }
 
     /// Execute with an I/O set and calculate the cost
@@ -339,7 +341,7 @@ impl<'a> Cost<'a> {
     /// Default cost for hamming
     fn default_hamming(&self) -> f64 {
         // XXX_ play with this const
-        8f64 * ((self.width / 8) as f64)
+        4f64 * ((self.width / 8) as f64)
     }
 
     /// Calculate cost of this expression
@@ -356,7 +358,7 @@ impl<'a> Cost<'a> {
                 }
                 //cost += self.int_distance(res, &io_res);
             } else {
-                cost += self.crash_cost();
+                return self.crash_cost();
             }
         }
         // Size penalty

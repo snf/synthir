@@ -423,16 +423,16 @@ impl RandExprSampler {
                 // Weighted{item: EEWS::Cast, weight: 1},
                 // Weighted{item: EEWS::Ex, weight: 1},
                 // Weighted{item: EEWS::IInt, weight: 1}
-                Weighted{item: EEWS::Bit, weight: 5},
-                Weighted{item: EEWS::Bits, weight: 5},
+                Weighted{item: EEWS::Bit, weight: 3},
+                Weighted{item: EEWS::Bits, weight: 3},
                 Weighted{item: EEWS::Arith, weight: 10},
                 Weighted{item: EEWS::Logic, weight: 10},
                 Weighted{item: EEWS::Un, weight: 5},
                 Weighted{item: EEWS::ITE, weight: 1},
                 //Weighted{item: EEWS::Bool, weight: 0},
-                Weighted{item: EEWS::Cast, weight: 4},
-                Weighted{item: EEWS::Ex, weight: 5},
-                Weighted{item: EEWS::IInt, weight: 5}
+                Weighted{item: EEWS::Cast, weight: 3},
+                Weighted{item: EEWS::Ex, weight: 1},
+                Weighted{item: EEWS::IInt, weight: 1}
                 ]
                                                     )
         }
