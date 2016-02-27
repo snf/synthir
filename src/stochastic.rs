@@ -315,7 +315,7 @@ impl<'a> Cost<'a> {
                     100.0
                 }
             };
-        Float::min(8.0, diff)
+        Float::min(4.0, diff)
     }
 
     fn calc_res_arith_float_distance(&self) -> f64 {
