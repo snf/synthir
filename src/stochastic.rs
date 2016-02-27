@@ -4,7 +4,7 @@ use sample::{RandExprSampler};
 use utils::{Hamming};
 
 use num::bigint::BigUint;
-use num::traits::{ToPrimitive};
+use num::traits::{Float, ToPrimitive};
 use rand::{Rng, ThreadRng, thread_rng};
 use rand::distributions::{Sample, Weighted, WeightedChoice};
 use std::collections::HashMap;
@@ -315,11 +315,7 @@ impl<'a> Cost<'a> {
                     100.0
                 }
             };
-        if diff > 8.0 {
-            8.0
-        } else {
-            diff
-        }
+        Float::min(8.0, diff)
     }
 
     fn calc_res_arith_float_distance(&self) -> f64 {
@@ -356,8 +352,10 @@ impl<'a> Cost<'a> {
         for &(ref res, ref io_set) in self.io_sets {
             let io_res = self.execute_once(io_set);
             if let Ok(io_res) = io_res {
-                cost += self.default_hamming().min(
-                    self.hamming_distance(res, &io_res).to_f64().unwrap());
+                cost += Float::min(
+                    self.default_hamming(),
+                    self.hamming_distance(res, &io_res).to_f64().unwrap()
+                );
                 if res != &io_res {
                     cost += MISALIGN_PENALTY;
                 }
