@@ -808,8 +808,11 @@ impl<'a, T: Native> Work<'a, T> {
             let r_exprs: Vec<&Expr> = exprs.iter().map(|k| k).collect();
             let a = self.verify_contrast_reduce(ins, dep, io_set, &r_exprs);
         }
-
-        exprs.remove(0)
+        if exprs.is_empty() {
+            Expr::NoOp
+        } else {
+            exprs.remove(0)
+        }
     }
 
     pub fn work_instruction(&self, ins: &Instruction)
