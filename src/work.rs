@@ -606,8 +606,10 @@ impl<'a, T: Native> Work<'a, T> {
                                                    dep.get_bit_width());
                     stoc.set_max_secs(600.0);
                     stoc.work();
-                    let val = stoc.get_expr();
-                    res.lock().unwrap().push(val);
+                    if stoc.get_cost() == 0.0 {
+                        let val = stoc.get_expr();
+                        res.lock().unwrap().push(val);
+                    }
                 });
             }
         });

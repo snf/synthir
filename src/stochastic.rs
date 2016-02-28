@@ -77,6 +77,9 @@ impl Stochastic {
         }
     }
 
+    /// Get cost
+    pub fn get_cost(&self) -> f64 { self.curr_cost }
+
     /// Adjust the max amount of seconds it must run
     pub fn set_max_secs(&mut self, max_secs: f64) {
         self.max_secs = max_secs;
