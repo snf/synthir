@@ -211,12 +211,12 @@ fn translate_cast<'a>(z3: &'a Z3Store<'a>, op: OpCast, e: &Z3Ast, et: ExprType)
     let i_w = et.get_width();
     match op {
         OpCast::CastLow => {
-            ctx.extract(i_w, 0, e)
+            ctx.extract(i_w - 1, 0, e)
         }
         OpCast::CastHigh => {
-            let high = e.get_bv_width();
-            let low = high - i_w;
-            ctx.extract(high, low, e)
+            let width = e.get_bv_width();
+            let low = width - i_w;
+            ctx.extract(width - 1, low, e)
         }
         OpCast::CastSigned => {
             if i_w < e.get_bv_width() {
