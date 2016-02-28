@@ -331,7 +331,7 @@ pub fn equal_or_counter(e1: &Expr, e2: &Expr, width: u32)
         let exprs = z3.get_exprs();
         for (e, e_ast) in exprs {
             let e_numstr = model.eval(&e_ast).unwrap().get_numstring().unwrap();
-            let e_bigu = BigUint::parse_bytes(e_numstr.as_bytes(), 16).unwrap();
+            let e_bigu = BigUint::parse_bytes(e_numstr.as_bytes(), 10).unwrap();
             map.insert(e, e_bigu);
         }
         Some(map)
