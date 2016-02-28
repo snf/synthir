@@ -423,8 +423,8 @@ fn execute_unsigned_boolop(op: OpBool, v1: &Value, v2: &Value, w: u32) -> bool {
     let ref v1 = v1.value;
     let ref v2 = v2.value;
     match op {
-        OpBool::LT => v1 > v2,
-        OpBool::LE => v1 >= v2,
+        OpBool::LT => v1 < v2,
+        OpBool::LE => v1 <= v2,
         OpBool::EQ => v1 == v2,
         OpBool::NEQ => v1 != v2,
         _ => panic!("not supported")
@@ -434,14 +434,14 @@ fn execute_unsigned_boolop(op: OpBool, v1: &Value, v2: &Value, w: u32) -> bool {
 fn execute_signed_boolop(op: OpBool, v1: &Value, v2: &Value, w: u32) -> bool {
     let v1 = adjust_width(v1, w, true);
     let v2 = adjust_width(v2, w, true);
-    let is_larger = match (v1.get_sign(), v2.get_sign()) {
-        (Sign::Positive, Sign::Negative) => true,
-        (Sign::Negative, Sign::Positive) => false,
-        (_ , _) => v1.value > v2.value
+    let is_less = match (v1.get_sign(), v2.get_sign()) {
+        (Sign::Positive, Sign::Negative) => false,
+        (Sign::Negative, Sign::Positive) => true,
+        (_ , _) => v1.value < v2.value
     };
     match op {
-        OpBool::SLT => is_larger,
-        OpBool::SLE => is_larger || (v1.value == v2.value),
+        OpBool::SLT => is_less,
+        OpBool::SLE => is_less || (v1.value == v2.value),
         _ => panic!("not supported")
     }
 }
