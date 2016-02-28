@@ -75,14 +75,14 @@ pub fn translate_ite<'a>(z3: &'a Z3Store<'a>, b: &Z3Ast, a1: &Z3Ast, a2: &Z3Ast)
 /// Translate BoolOp to SMT logic
 pub fn translate_boolop<'a>(z3: &'a Z3Store<'a>, op: OpBool, a1: &Z3Ast, a2: &Z3Ast, w: u32) -> Z3Ast<'a> {
     let ctx = z3.z3();
-    let (a1, a2) = if a1.get_bv_width() != a2.get_bv_width() {
-        let max = cmp::max(a1.get_bv_width(), a2.get_bv_width());
-        (adjust_width(z3, a1, max, false),
-         adjust_width(z3, a2, max, false))
-    } else {
-        (a1.clone(), a2.clone())
+    let (a1, a2) = match op {
+        OpBool::LT | OpBool::LE | OpBool::EQ | OpBool::NEQ
+            => (adjust_width(z3, a1, w, false),
+                adjust_width(z3, a2, w, false)),
+        OpBool::SLT | OpBool::SLE
+            => (adjust_width(z3, a1, w, true),
+                adjust_width(z3, a2, w, true)),
     };
-
     match op {
         OpBool::LT  => ctx.bvult(&a1, &a2),
         OpBool::LE  => ctx.bvule(&a1, &a2),
@@ -99,6 +99,7 @@ pub fn translate_boolop<'a>(z3: &'a Z3Store<'a>, op: OpBool, a1: &Z3Ast, a2: &Z3
 /// Translate UnOp to SMT logic
 pub fn translate_unop<'a>(z3: &'a Z3Store<'a>, op: OpUnary, a: &Z3Ast, width: u32) -> Z3Ast<'a> {
     let ctx = z3.z3();
+    let a = adjust_width(&z3, &a, width, false);
     match op {
         OpUnary::Neg => ctx.bvneg(&a),
         OpUnary::Not => ctx.bvnot(&a)
@@ -108,13 +109,8 @@ pub fn translate_unop<'a>(z3: &'a Z3Store<'a>, op: OpUnary, a: &Z3Ast, width: u3
 /// Translate LogicOp to SMT logic
 pub fn translate_logicop<'a>(z3: &'a Z3Store<'a>, op: OpLogic, a1: &Z3Ast, a2: &Z3Ast, width: u32) -> Z3Ast<'a> {
     let ctx = z3.z3();
-    let (a1, a2) = if a1.get_bv_width() != a2.get_bv_width() {
-        let max = cmp::max(a1.get_bv_width(), a2.get_bv_width());
-        (adjust_width(z3, a1, max, false),
-         adjust_width(z3, a2, max, false))
-    } else {
-        (a1.clone(), a2.clone())
-    };
+    let a1 = adjust_width(&z3, &a1, width, false);
+    let a2 = adjust_width(&z3, &a2, width, false);
     match op {
         OpLogic::And => ctx.bvand(&a1, &a2),
         OpLogic::Xor => ctx.bvxor(&a1, &a2),
@@ -172,8 +168,6 @@ pub fn translate_arithop<'a>(z3: &'a Z3Store<'a>, op: OpArith, a1: &Z3Ast, a2: &
         OpArith::SMod => ctx.bvsmod(&a1p, &a2p),
         OpArith::ARShift => ctx.bvashr(&a1p, &a2p),
         OpArith::ALShift => ctx.bvshl(&a1p, &a2p),
-        // XXX_ MUL with res > a1 or a2, how to do it?,
-        // signed?
     }
 }
 
