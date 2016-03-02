@@ -273,7 +273,7 @@ pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr, w: u32) -> Z3Ast<'a> {
                                              et),
         _ => panic!(format!("not supported: {:?}", e))
     };
-    //println!("res: {}", res);
+    //println!("res: {:?}", res);
     //println!("res_width: {:?}", res.get_bv_width());
     res
 }
@@ -304,17 +304,11 @@ pub fn equal_or_counter(e1: &Expr, e2: &Expr, width: u32)
     let ast2 = translate(&z3, e2, width);
     let ctx = z3.z3();
 
-    println!("ast1: {:?}\nast2: {:?}", ast1, ast2);
-
     // Adjust both to the same bit width
-    // XXX_ both should be adjusted to register width instead
-    let (ast1, ast2) = if ast1.get_bv_width() != ast2.get_bv_width() {
-        let max = cmp::max(ast1.get_bv_width(), ast2.get_bv_width());
-        (adjust_width(&z3, &ast1, max, false),
-         adjust_width(&z3, &ast2, max, false))
-    } else {
-        (ast1, ast2)
-    };
+    let ast1 = adjust_width(&z3, &ast1, width, false);
+    let ast2 = adjust_width(&z3, &ast2, width, false);
+
+    println!("ast1: {:?}\nast2: {:?}", ast1, ast2);
 
     let eq = ctx.eq(&ast1, &ast2);
     let model = ctx.check_and_get_model(&eq);
