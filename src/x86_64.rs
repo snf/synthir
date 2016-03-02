@@ -59,11 +59,16 @@ impl Disassemble for X86_64 {
     fn disassemble(bytes: &[u8], address: u64) -> Option<Instruction> {
         let (mnemonic, op_str) =
             Self::disassemble_arch(Arch::X86_64, bytes, address).unwrap();
+
         let opnds: Vec<(&str, u32)> =
-            op_str.split(',')
-            .map(|s| s.trim())
-            .map(|s| (s, Self::get_opnd_width(s)))
-            .collect();
+            if op_str.trim().is_empty() {
+                Vec::new()
+            } else {
+                op_str.split(',')
+                    .map(|s| s.trim())
+                    .map(|s| (s, Self::get_opnd_width(s)))
+                    .collect()
+            };
         Some(Instruction::new(&mnemonic,
                               &opnds))
 
