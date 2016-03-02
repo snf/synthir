@@ -50,3 +50,9 @@ pub trait Disassemble {
         }
     }
 }
+
+pub fn disassemble<T: Disassemble>(_ignore: &T, bytes: &[u8], address: u64)
+                                   -> Option<Instruction>
+{
+        T::disassemble(bytes, address)
+}
