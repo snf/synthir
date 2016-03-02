@@ -780,6 +780,7 @@ impl<'a, T: Native> Work<'a, T> {
         if exprs.is_empty() {
             (None, io_set.clone())
         } else {
+            println!("verify_contrast_reduce res: {:?}", exprs.get(0));
             (Some(exprs.remove(0).clone()), io_set.clone())
         }
     }
