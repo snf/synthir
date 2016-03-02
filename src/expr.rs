@@ -437,7 +437,8 @@ impl ESize {
             .max().unwrap() as u32
     }
 }
-pub fn traverse_get_size (
+
+fn traverse_get_size(
     state: &mut ESize,
     e: &Expr)
 {
