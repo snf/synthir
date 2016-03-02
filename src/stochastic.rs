@@ -111,7 +111,7 @@ impl Stochastic {
         let mut epoints = EPoints::new();
         traverse_get_points(&mut epoints, &self.curr_expr);
         // XXX_ implement me
-        //println!("poi: {:?}", epoints);
+        //debugln!("poi: {:?}", epoints);
         let possible_points = match mov {
             Mov::Insert => epoints.get_expr(),
             Mov::ReplaceOp => epoints.get_op(),
@@ -120,7 +120,7 @@ impl Stochastic {
             Mov::Swap => epoints.get_bin(),
             Mov::Remove => epoints.get_expr()
         };
-        //println!("pos_poi: {:?}", possible_points);
+        //debugln!("pos_poi: {:?}", possible_points);
         if let Some(point) = self.rng.choose(&possible_points) {
             point.to_vec()
         } else {
@@ -144,10 +144,10 @@ impl Stochastic {
 
     #[inline]
     fn report(&self, tries: u64) {
-        println!("Current cost: {}", self.curr_cost);
-        println!("Current expr: {:?}", self.curr_expr);
-        println!("Tries since last report: {}", tries);
-        println!("Exprs/min: {}", (tries * 60/ REPORT_SECS_U64));
+        debugln!("Current cost: {}", self.curr_cost);
+        debugln!("Current expr: {:?}", self.curr_expr);
+        debugln!("Tries since last report: {}", tries);
+        debugln!("Exprs/min: {}", (tries * 60/ REPORT_SECS_U64));
     }
 
     /// All the work
@@ -176,7 +176,7 @@ impl Stochastic {
                 if (now - last_report) >= REPORT_SECS {
                     let diff = now - last_report - REPORT_SECS;
                     if diff > 5.0 {
-                        println!("Something is bad, can't take more than 5 secs to hit the report, diff: {}", diff);
+                        debugln!("Something is bad, can't take more than 5 secs to hit the report, diff: {}", diff);
                     }
                     self.report(tries - last_tries);
                     last_report = now;
@@ -202,7 +202,7 @@ impl Stochastic {
                     self.curr_expr = e;
                 }
             }
-            println!("cleaned: {:?}", self.curr_expr);
+            debugln!("cleaned: {:?}", self.curr_expr);
         }
     }
 
@@ -214,21 +214,21 @@ impl Stochastic {
         if new_expr == self.curr_expr {
             return None
         }
-        //println!("new expr: {:?}", new_expr);
+        //debugln!("new expr: {:?}", new_expr);
 
         // cost() - ln(p)/b
         let p = self.rng.gen_range::<f64>(0.0, 1.0);
         let beta = self.beta;
         let max = self.curr_cost - (p.ln() / beta);
-        //println!("max: {}", max);
+        //debugln!("max: {}", max);
 
         let new_cost = self.calc_cost(&new_expr);
-        //println!("new cost: {}", new_cost);
+        //debugln!("new cost: {}", new_cost);
 
         if new_cost > max {
             None
         } else {
-            //println!("accepting new cost!");
+            //debugln!("accepting new cost!");
             Some((new_expr, new_cost))
         }
     }
@@ -311,8 +311,8 @@ impl<'a> Cost<'a> {
                         b - a
                     };
                 if let Some(diff) = diff.to_f64() {
-                    // println!("diff: {}", diff);
-                    // println!("ln_diff: {}", diff.ln());
+                    // debugln!("diff: {}", diff);
+                    // debugln!("ln_diff: {}", diff.ln());
                     diff
                 } else {
                     100.0
@@ -403,9 +403,9 @@ impl<'a> Transform<'a> {
 
     /// Run the Transform once and return result
     fn run(&mut self, e: &Expr) -> Expr {
-        // println!("mov: {:?}", self.trans);
-        // println!("pos: {:?}", self.pos);
-        // println!("expr: {:?}", e);
+        // debugln!("mov: {:?}", self.trans);
+        // debugln!("pos: {:?}", self.pos);
+        // debugln!("expr: {:?}", e);
         // If mov is not possible, return the same expr
         if self.pos.is_empty() {
             e.clone()

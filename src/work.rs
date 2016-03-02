@@ -148,7 +148,7 @@ impl<'a, T: Native> Work<'a, T> {
             if exec_res.is_none() {
                 // XXX_ this is probably a `jmp reg` and should be
                 // handled
-                println!("here should only fail on jmp MEM[REG]");
+                debugln!("here should only fail on jmp MEM[REG]");
                 return Err(());
             }
             // Start unmapping one at a time
@@ -188,7 +188,7 @@ impl<'a, T: Native> Work<'a, T> {
                         lower_bound = width;
                         break;
                     } else {
-                        //println!("adjusting width: {}", width);
+                        //debugln!("adjusting width: {}", width);
                     }
                 }
 
@@ -201,7 +201,7 @@ impl<'a, T: Native> Work<'a, T> {
 
         }
         mem_regs.sort();
-        println!("mem regs: {:?}", mem_regs);
+        debugln!("mem regs: {:?}", mem_regs);
         Ok(mem_regs)
     }
 
@@ -261,7 +261,7 @@ impl<'a, T: Native> Work<'a, T> {
         }
         // _____________________________________________
 
-        println!("Test regs: {:?}", all_test);
+        debugln!("Test regs: {:?}", all_test);
 
         // Start changing the registers one at a time and getting
         // which registers are modified
@@ -282,7 +282,7 @@ impl<'a, T: Native> Work<'a, T> {
             let exe_res = exec.execute(&self.def);
             if exe_res.is_none() {
                 // XXX_ handle errors here?, hmm, we failed
-                println!("unhandled error");
+                debugln!("unhandled error");
                 continue;
                 return Err(());
             }
@@ -331,7 +331,7 @@ impl<'a, T: Native> Work<'a, T> {
                 if new_mem != old_mem {
                     mod_regs.push(mem.clone());
                 }
-                // println!("mem byte width: {:?}", mem.get_byte_width());
+                // debugln!("mem byte width: {:?}", mem.get_byte_width());
                 // let mod_bytes = self.def.get_min_modified_len_bytes(
                 //     new_mem,
                 //     old_mem,
@@ -357,16 +357,16 @@ impl<'a, T: Native> Work<'a, T> {
                 //assert_eq!(found, true);
             }
 
-            println!("tmp_mod_regs: {:?}", tmp_mod_regs);
-            println!("mod_regs: {:?}", mod_regs);
+            debugln!("tmp_mod_regs: {:?}", tmp_mod_regs);
+            debugln!("mod_regs: {:?}", mod_regs);
 
             // let mut rax = Dep::new("RAX");
             // let rax = rax.bit_width(64);
-            // println!("RAX: 0x{:x}", exec.get_dep_value(rax).to_u64().unwrap());
-            // println!("RAX after: 0x{:x}", exe_res.get_dep(rax).to_u64().unwrap());
+            // debugln!("RAX: 0x{:x}", exec.get_dep_value(rax).to_u64().unwrap());
+            // debugln!("RAX after: 0x{:x}", exe_res.get_dep(rax).to_u64().unwrap());
             // let mut rsp_m = Dep::new("RSP");
             // let rsp_m = rsp_m.bit_width(64).mem(true);
-            // println!("[RSP]: 0x{:x}", exec.get_dep_value(rsp_m).to_u64().unwrap());
+            // debugln!("[RSP]: 0x{:x}", exec.get_dep_value(rsp_m).to_u64().unwrap());
 
             // For each modified value, start modifying one by one to
             // detect which ones modifies this register. If no
@@ -375,7 +375,7 @@ impl<'a, T: Native> Work<'a, T> {
             // again, it means it only depends on itself.
             let saved_exe_res = &exe_res;
             for dep in &mod_regs {
-                //println!("working with: {:?}", dep);
+                //debugln!("working with: {:?}", dep);
                 let prev_val = saved_exe_res.get_dep_value(dep);
                 let diff_exec = {
                     if let Some(exec) = self.get_exe_not_dep_res(
@@ -384,8 +384,8 @@ impl<'a, T: Native> Work<'a, T> {
                         &exe_res.get_dep_value(dep)) {
                         exec
                     } else {
-                        println!("not found: {:?}", dep);
-                        println!("dep value: {:?}", exe_res.get_dep_value(dep));
+                        debugln!("not found: {:?}", dep);
+                        debugln!("dep value: {:?}", exe_res.get_dep_value(dep));
                         cache.last().0.clone()
                         //continue;
                     }
@@ -403,7 +403,7 @@ impl<'a, T: Native> Work<'a, T> {
                     // modifying each one to match the previous state.
                     let mut curr_exec = exec.clone();
 
-                    // println!("dependant: {:?}, modifying: {:?}",
+                    // debugln!("dependant: {:?}, modifying: {:?}",
                     //         reg, m_reg);
                     let value = diff_exec.get_dep_value(m_dep);
                     curr_exec.set_dep(m_dep, &value);
@@ -413,7 +413,7 @@ impl<'a, T: Native> Work<'a, T> {
 
                     // XXX_ handle errors here?
                     if exe_res.is_none() {
-                        println!("errrrrr");
+                        debugln!("errrrrr");
                         continue;
                         return Err(());
                     }
@@ -421,7 +421,7 @@ impl<'a, T: Native> Work<'a, T> {
                     let curr_regs_after = exe_res.get_regs_after();
                     // Now compare reg value with the previous one
                     let curr_val = exe_res.get_dep_value(dep);
-                    // println!("curr_val: {:?}, prev_val: {:?}",
+                    // debugln!("curr_val: {:?}, prev_val: {:?}",
                     //          curr_val, prev_val);
                     if curr_val != prev_val {
                         found = true;
@@ -429,7 +429,7 @@ impl<'a, T: Native> Work<'a, T> {
                         if !res.contains_key(dep) {
                             res.insert(dep.clone(), Vec::new());
                         }
-                        println!("dep[{:?}].insert({:?})", dep, m_dep);
+                        debugln!("dep[{:?}].insert({:?})", dep, m_dep);
                         let this_dep = res.get_mut(dep).unwrap();
                         if !this_dep.contains(m_dep) {
                             this_dep.push(m_dep.clone());
@@ -441,9 +441,9 @@ impl<'a, T: Native> Work<'a, T> {
 
             }
             //let new_regs = self.def.normalize_regs(&regs_after);
-            //println!("mod regs: {:?}", &mod_regs);
+            //debugln!("mod regs: {:?}", &mod_regs);
         }
-        println!("res: {:?}", res);
+        debugln!("res: {:?}", res);
         Ok(res)
     }
 
@@ -479,7 +479,7 @@ impl<'a, T: Native> Work<'a, T> {
                 for dep in deps {
                     let width = dep.get_bit_width();
                     let value = round.get_value(width);
-                    // println!("dep: {:?}, value: {:?}", dep, value);
+                    // debugln!("dep: {:?}, value: {:?}", dep, value);
                     exec.set_dep(dep, &value);
                     new_input_set.insert(dep.clone(), value);
                 }
@@ -490,7 +490,7 @@ impl<'a, T: Native> Work<'a, T> {
                 // It shouldn't fail here but fail gracefully :)
                 if exec_res.is_none() {
                     // XXX_
-                    println!("somehow failed here");
+                    debugln!("somehow failed here");
                     continue;
                     return Err(())
                 }
@@ -601,7 +601,7 @@ impl<'a, T: Native> Work<'a, T> {
         let res = Mutex::new(Vec::new());
         let expr_inits = self.get_expr_ioset(io_set);
         let io_set_e = self.ioset_to_res_var_val(io_set);
-        //println!("io_set_e: {:?}", io_set_e);
+        //debugln!("io_set_e: {:?}", io_set_e);
 
         const MIN_EXPRS: usize = 1;
         crossbeam::scope(|scope| {
@@ -738,12 +738,12 @@ impl<'a, T: Native> Work<'a, T> {
         while exprs.len() > 1 {
             let fst = exprs.remove(0);
             let snd = exprs.remove(0);
-            println!("Verify new round\nfst: {:?}\nsnd: {:?}", fst, snd);
+            debugln!("Verify new round\nfst: {:?}\nsnd: {:?}", fst, snd);
 
             if let Some(counter) =
                 equal_or_counter(fst, snd, dep.get_bit_width())
             {
-                println!("Different\nCounter: {:?}", counter);
+                debugln!("Different\nCounter: {:?}", counter);
                 let mut counter_m: HashMap<Dep, BigUint> = HashMap::new();
                 let _ = counter.iter()
                     .inspect(|&(k, v)| {
@@ -753,11 +753,11 @@ impl<'a, T: Native> Work<'a, T> {
                 if let Ok(ex_res) = self.execute_once(ins, dep, &counter_m) {
                     io_set.push((counter_m, ex_res.clone()));
                     let mut count = 0;
-                    println!("real_res: {:?}", ex_res);
+                    debugln!("real_res: {:?}", ex_res);
                     if let Ok(em_res) = self.emulate_once(
                         fst, dep.get_bit_width(), &counter)
                     {
-                        println!("fst_res: {:?}", em_res);
+                        debugln!("fst_res: {:?}", em_res);
                         if em_res == ex_res {
                             count += 1;
                             exprs.push(fst);
@@ -766,7 +766,7 @@ impl<'a, T: Native> Work<'a, T> {
                     if let Ok(em_res) = self.emulate_once(
                         snd, dep.get_bit_width(), &counter)
                     {
-                        println!("snd_res: {:?}", em_res);
+                        debugln!("snd_res: {:?}", em_res);
                         if em_res == ex_res {
                             count += 1;
                             exprs.push(snd);
@@ -778,7 +778,7 @@ impl<'a, T: Native> Work<'a, T> {
                         "verify_contrast_reduce couldn't execute counter example");
                 }
             } else {
-                println!("Equal, removing larger");
+                debugln!("Equal, removing larger");
                 let good = if fst.get_size() < snd.get_size() { fst } else { snd };
                 exprs.push(good);
             }
@@ -786,7 +786,7 @@ impl<'a, T: Native> Work<'a, T> {
         if exprs.is_empty() {
             (None, io_set.clone())
         } else {
-            println!("verify_contrast_reduce res: {:?}", exprs.get(0));
+            debugln!("verify_contrast_reduce res: {:?}", exprs.get(0));
             (Some(exprs.remove(0).clone()), io_set.clone())
         }
     }
@@ -804,11 +804,11 @@ impl<'a, T: Native> Work<'a, T> {
         let mut exprs: Vec<Expr> = Vec::new();
 
         let mut from_template = self.get_expr_template(ins, dep, io_set, others);
-        println!("from template: {:?}", from_template);
+        debugln!("from template: {:?}", from_template);
         exprs.append(&mut from_template);
 
         let mut from_stochastic = self.get_expr_stochastic(ins, dep, io_set);
-        println!("from stochastic: {:?}", from_stochastic);
+        debugln!("from stochastic: {:?}", from_stochastic);
         exprs.append(&mut from_stochastic);
 
         {
@@ -827,11 +827,11 @@ impl<'a, T: Native> Work<'a, T> {
     {
         // Take the instruction and assemble it with proper arguments
         let n_ins = self.replace_opnds_for_regs(ins);
-        println!("Instruction: {:?}", n_ins);
+        debugln!("Instruction: {:?}", n_ins);
 
         // Get deps
         let deps = try!(self.get_dependencies(&n_ins));
-        println!("Dependencies: {:?}", deps);
+        debugln!("Dependencies: {:?}", deps);
 
         // Get I/O sets
         let io_sets = try!(self.get_io_sets(&n_ins, &deps));
@@ -841,10 +841,10 @@ impl<'a, T: Native> Work<'a, T> {
                 print!("{:?}: ", k);
                 let _ = v.iter()
                     .inspect(|&&(ref ks, ref res)| {
-                        println!("Res: {} ", res);
+                        debugln!("Res: {} ", res);
                         let _ = ks.iter()
                             .inspect(|&(k, v)| {
-                                println!("\t{:?}: {}", k, v);
+                                debugln!("\t{:?}: {}", k, v);
                             }).count();
                     }).count();
 
@@ -860,19 +860,19 @@ impl<'a, T: Native> Work<'a, T> {
         // Synthetize the expressions for each dep
         let mut progs = HashMap::new();
         for (dep, io_set) in io_sets_vec {
-            println!("[+] Working Expr for {:?}", dep);
+            debugln!("[+] Working Expr for {:?}", dep);
             let exprs = {
                 let others: Vec<&Expr> = progs.values().collect();
                 self.synthetize(&n_ins, &dep, &io_set, &others)
             };
             progs.insert(self.dep_to_expr(&dep), exprs);
         }
-        println!("Programs: {:?}", progs);
+        debugln!("Programs: {:?}", progs);
 
         // XXX_ try to create a relation between the arguments and the
         // Expr involved
 
-        println!("================######=============");
+        debugln!("================######=============");
 
         Ok(progs)
 
@@ -889,7 +889,7 @@ fn test_get_io_sets() {
 
     // inc al
     let ins = X86_64::disassemble(&[0xFE, 0xC0], 0x1000).unwrap();
-    println!("ins: {:?}", ins);
+    debugln!("ins: {:?}", ins);
 
     let mut deps = HashMap::new();
     deps.insert(Dep::new("AL").bit_width(8).clone(),
@@ -905,7 +905,7 @@ fn test_get_io_sets() {
 
     let res = work.get_io_sets(&ins, &deps);
 
-    //println!("res: {:?}", res);
+    //debugln!("res: {:?}", res);
     assert!(res.is_ok());
 }
 
@@ -919,7 +919,7 @@ fn test_get_expr_inc_al() {
 
     // inc al
     let ins = X86_64::disassemble(&[0xFE, 0xC0], 0x1000).unwrap();
-    println!("ins: {:?}", ins);
+    debugln!("ins: {:?}", ins);
 
     let mut deps = HashMap::new();
     // deps.insert(Dep::new("OF").bit_width(1),
@@ -932,7 +932,7 @@ fn test_get_expr_inc_al() {
         // XXX_ enable me back
         // work.gen_expr_from_io_set(&ins, dep, ioset);
     }
-    //println!("res: {:?}", res);
+    //debugln!("res: {:?}", res);
 }
 
 // Re-enable these anoying long tests
@@ -947,7 +947,7 @@ fn test_get_expr_inc_al() {
 //     // stosb = MOV byte ptr [RDI], AX
 //     let ins = X86_64::disassemble(&[0xAA], 0x1000).unwrap();
 
-//     println!("ins: {:?}", ins);
+//     debugln!("ins: {:?}", ins);
 //     let res = work.get_dependencies(&ins);
 // }
 // #[test]
@@ -961,13 +961,13 @@ fn test_get_expr_inc_al() {
 //     // inc al
 //     let ins = X86_64::disassemble(&[0xFE, 0xC0], 0x1000).unwrap();
 
-//     println!("ins: {:?}", ins);
+//     debugln!("ins: {:?}", ins);
 //     let res = work.get_dependencies(&ins);
 
 //     // mov eax, eax
 //     let ins = X86_64::disassemble(&[0x89, 0xC0], 0x1000).unwrap();
 
-//     println!("ins: {:?}", ins);
+//     debugln!("ins: {:?}", ins);
 //     let res = work.get_dependencies(&ins);
 // }
 
@@ -991,7 +991,7 @@ fn test_work() {
     // dec al
     let ins = X86_64::disassemble(&[0xFE, 0xC8], 0x1000).unwrap();
 
-    println!("ins: {:?}", ins);
+    debugln!("ins: {:?}", ins);
     // XXX_ enable me back
     // work.work_instruction(&ins);
 }

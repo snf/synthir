@@ -88,16 +88,16 @@ impl SubRegDefinition {
             {
                 // 0 to 8 = 0 to 8
                 real_off = start_width + end_width - bit_off;
-                //println!("bit_off: {}, real: {}", bit_off, real_off);
+                //debugln!("bit_off: {}, real: {}", bit_off, real_off);
             }
         }
 
-        // println!("parent: off: {}", parent.bit_off());
-        // println!("child: off: {}", self.from_bit);
+        // debugln!("parent: off: {}", parent.bit_off());
+        // debugln!("child: off: {}", self.from_bit);
 
         if real_off >= self.from_bit &&
            real_off <  self.from_bit + self.width {
-               //println!("found!!!");
+               //debugln!("found!!!");
                true
            } else {
                false
@@ -160,7 +160,7 @@ impl MemoryDefinition {
     pub fn get_byte_diff(&self, other: &MemoryDefinition) -> Vec<u32> {
         let mut v = Vec::new();
         for i in 0 .. self.memory.len() {
-            //println!("[{}] = {}", i, other.memory[i]);
+            //debugln!("[{}] = {}", i, other.memory[i]);
             if self.memory[i] != other.memory[i] {
                 v.push(i as u32)
             }
@@ -394,8 +394,8 @@ impl Definition {
         for (name, reg_def) in &self.sub_regs {
             let parent = &self.regs[reg_def.parent];
             let parent_bit_off = parent.bit_off();
-            // println!("parent: name: {}", reg_def.parent);
-            // println!("child: name: {}", name);
+            // debugln!("parent: name: {}", reg_def.parent);
+            // debugln!("child: name: {}", name);
             if reg_def.bit_off_in(bit_off, parent) {
                 res.push(&name[..]);
             }

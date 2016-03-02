@@ -231,7 +231,7 @@ impl<'a> TemplateSearch<'a> {
         macro_rules! exec_for{
             ($res:expr, $($T:ident),*) => (
                 $(
-                    //println!("template: {}", stringify!($T));
+                    //debugln!("template: {}", stringify!($T));
                     $res.append(&mut self.try_template::<$T>());
                 )*
             )

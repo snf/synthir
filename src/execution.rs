@@ -393,11 +393,11 @@ impl<'a> Execution<'a> {
                                             mem_def.get_memory());
         }
 
-        // println!("executing");
+        // debugln!("executing");
         let res = PtraceExecute::execute_with_steps(self.entry,
                                                     self.def.prologue_steps,
                                                     self.def.epilogue_steps);
-        // println!("finished");
+        // debugln!("finished");
         if res.is_ok() {
             let after = &self.regs_after;
             let mut registers_read = vec![0; after.size() as usize];
@@ -420,7 +420,7 @@ impl<'a> Execution<'a> {
                                    &self.mem_deps))
         } else {
             PtraceExecute::dispose_execution();
-            // println!("err: {:?}", res.err());
+            // debugln!("err: {:?}", res.err());
             None
         }
     }

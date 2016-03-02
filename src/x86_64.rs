@@ -80,23 +80,23 @@ include!("x86_64_gen.rs");
 #[test]
 fn test_disassemble() {
     let out = X86_64::disassemble(&[0xff, 0x25, 0x42, 0x7e, 0x21, 0x00], 0x1000);
-    println!("{:?}", out);
+    debugln!("{:?}", out);
     let out = X86_64::disassemble(&[0x48, 0x89, 0xE0], 0x1000);
-    println!("{:?}", out);
+    debugln!("{:?}", out);
     let out = X86_64::disassemble(&[0x89, 0xC0], 0x1000);
-    println!("{:?}", out);
+    debugln!("{:?}", out);
     let out = X86_64::disassemble(&[0xAA], 0x1000);
-    println!("{:?}", out);
+    debugln!("{:?}", out);
     let out = X86_64::disassemble(&[0x48, 0xA3, 0x00, 0x90, 0x9A,
                                     0x93, 0xE6, 0x7F, 0x00, 0x00], 0x1000);
-    println!("{:?}", out);
+    debugln!("{:?}", out);
 
 }
 
 #[test]
 fn test_assemble() {
     let out = X86_64::assemble("mov eax, 0x10");
-    //println!("{:?}", out);
+    //debugln!("{:?}", out);
     assert_eq!(true, out.is_some());
     // Test the pre defined code
     let def = X86_64::gen_definition();
@@ -104,12 +104,12 @@ fn test_assemble() {
     let epilogue = def.epilogue;
     let parsed_epilogue = epilogue.replace("%0", "0x40ffff");
     let asm_epilogue = X86_64::assemble(&parsed_epilogue);
-    //println!("{:?}", asm_epilogue);
+    //debugln!("{:?}", asm_epilogue);
     assert_eq!(true, asm_epilogue.is_some());
     // Prologue
     let prologue = def.prologue;
     let parsed_prologue = prologue.replace("%0", "0x40ffff");
     let asm_prologue = X86_64::assemble(&parsed_prologue);
-    //println!("{:?}", asm_prologue);
+    //debugln!("{:?}", asm_prologue);
     assert_eq!(true, asm_prologue.is_some());
 }

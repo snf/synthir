@@ -38,7 +38,7 @@ impl<'a> Z3Store<'a> {
         } else {
             let reg = self.z3.mk_bv_str(&e.to_string(),
                                         e.get_width().unwrap());
-            println!("reg: {:?}, width: {}",
+            debugln!("reg: {:?}, width: {}",
                      e, reg.get_bv_width());
             store.insert(e.clone(), reg.clone());
             reg
@@ -141,7 +141,7 @@ pub fn adjust_width<'a>(z3: &'a Z3Store<'a>, a: &Z3Ast,
 pub fn translate_arithop<'a>(z3: &'a Z3Store<'a>, op: OpArith, a1: &Z3Ast, a2: &Z3Ast, ty: ExprType) -> Z3Ast<'a> {
     let ctx = z3.z3();
     // First extend BitVectors to match result
-    // println!("adjusting width");
+    // debugln!("adjusting width");
     let (a1p, a2p) = match ty {
         ExprType::Int(i) => {
             match op {
@@ -225,7 +225,7 @@ fn translate_cast<'a>(z3: &'a Z3Store<'a>, op: OpCast, e: &Z3Ast, et: ExprType)
 /// Translate to SMT logic
 pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr, w: u32) -> Z3Ast<'a> {
     use expr::Expr::*;
-    //println!("processing: {:?}", e);
+    //debugln!("processing: {:?}", e);
     let res = match *e {
         Reg(_, _) => z3.get_expr(e),
         Int(ref i) => translate_biguint(z3, i, w),
@@ -273,8 +273,8 @@ pub fn translate<'a>(z3: &'a Z3Store<'a>, e: &Expr, w: u32) -> Z3Ast<'a> {
                                              et),
         _ => panic!(format!("not supported: {:?}", e))
     };
-    //println!("res: {:?}", res);
-    //println!("res_width: {:?}", res.get_bv_width());
+    //debugln!("res: {:?}", res);
+    //debugln!("res_width: {:?}", res.get_bv_width());
     res
 }
 
@@ -287,10 +287,10 @@ pub fn are_equal(e1: &Expr, e2: &Expr, width: u32) -> bool {
     let eq = ctx.eq(&ast1, &ast2);
     let model = ctx.check_and_get_model(&eq);
     //ctx.prove(&eq, true);
-    // println!("model: {}", model.get_str());
+    // debugln!("model: {}", model.get_str());
     // let regs = z3.get_regs();
     // for (r, r_ast) in regs {
-    //     println!("{}: {}", r, model.eval(&r_ast).unwrap().get_u64().unwrap());
+    //     debugln!("{}: {}", r, model.eval(&r_ast).unwrap().get_u64().unwrap());
     // }
     model.is_valid()
 }
@@ -308,7 +308,7 @@ pub fn equal_or_counter(e1: &Expr, e2: &Expr, width: u32)
     let ast1 = adjust_width(&z3, &ast1, width, false);
     let ast2 = adjust_width(&z3, &ast2, width, false);
 
-    println!("ast1: {:?}\nast2: {:?}", ast1, ast2);
+    debugln!("ast1: {:?}\nast2: {:?}", ast1, ast2);
 
     let eq = ctx.eq(&ast1, &ast2);
     let model = ctx.check_and_get_model(&eq);
@@ -380,7 +380,7 @@ mod test {
             OpArith::Sub, b2.clone(), two.clone(), ExprType::Int(32));
         assert_eq!(are_equal(&a1, &a2, 32), false);
         let diffs = equal_or_counter(&a1, &a2, 32);
-        println!("diffs: {:?}", diffs);
+        debugln!("diffs: {:?}", diffs);
     }
     #[test]
     fn test_expr_mul_div_const_equal() {
@@ -407,7 +407,7 @@ mod test {
                          ExprType::Int(32));
         assert_eq!(are_equal(&a1, &a2, 32), true);
         assert_eq!(equal_or_counter(&a1, &a2, 32), None);
-        //println!("diffs: {:?}", diffs);
+        //debugln!("diffs: {:?}", diffs);
     }
 
 }

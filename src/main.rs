@@ -80,9 +80,9 @@ mod test_stochastic {
             stoc.work();
             res.push(stoc.get_expr());
         }
-        println!("res: {:#?}", res);
+        debugln!("res: {:#?}", res);
         let counter = equal_or_counter(&res[0], &res[1], 32);
-        println!("counter: {:#?}", counter);
+        debugln!("counter: {:#?}", counter);
     }
 
     pub fn test_equal_expr() {
@@ -94,7 +94,7 @@ mod test_stochastic {
                               ExprType::Int(1));
         let b = a.clone();
         let counter = equal_or_counter(&a, &b, 1);
-        println!("counter: {:#?}", counter);
+        debugln!("counter: {:#?}", counter);
     }
 }
 
@@ -128,18 +128,18 @@ mod test_sub_eax_1 {
             let res = execute_expr(&state, &e, 32);
             if let Ok(res) = res {
                 if res.value().to_u32().unwrap() != (i - 1) {
-                    println!("not eq: {}, expected: {}", res.value(), (i - 1));
+                    debugln!("not eq: {}, expected: {}", res.value(), (i - 1));
                     break;
                 }
             } else {
-                println!("err");
+                debugln!("err");
                 break;
             }
             if i % 0x10000 == 0 {
-                println!("report: {:x}", i);
+                debugln!("report: {:x}", i);
             }
         }
-        println!("finished!");
+        debugln!("finished!");
     }
 }
 
@@ -156,7 +156,7 @@ mod test_work {
         // inc al
         // This is the code that facilitates the deps resolution
         // let ins = X86_64::disassemble(&[0xFE, 0xC0], 0x1000).unwrap();
-        // println!("ins: {:?}", ins);
+        // debugln!("ins: {:?}", ins);
 
         // let mut deps = HashMap::new();
         // // deps.insert(Dep::new("OF").bit_width(1),
@@ -179,15 +179,15 @@ mod test_work {
         // sub al
         //if let Some(ins) = X86_64::disassemble(&[0xFE, 0xC8], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
 
@@ -196,15 +196,15 @@ mod test_work {
     pub fn add_eax_ebx() {
         if let Some(ins) = X86_64::disassemble(&[0x01, 0xD8], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
 
@@ -217,15 +217,15 @@ mod test_work {
         if let Some(ins) =
             X86_64::disassemble(&[0xC5, 0xF4, 0x55, 0xC2], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
     }
@@ -236,15 +236,15 @@ mod test_work {
         if let Some(ins) =
             X86_64::disassemble(&[0xC5, 0xF5, 0x57, 0xC2], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
     }
@@ -256,15 +256,15 @@ mod test_work {
         if let Some(ins) =
             X86_64::disassemble(&[0xC5, 0xF4, 0x58, 0xC2], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
     }
@@ -274,15 +274,15 @@ mod test_work {
         if let Some(ins) =
             X86_64::disassemble(&[0x50], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
     }
@@ -292,15 +292,15 @@ mod test_work {
         if let Some(ins) =
             X86_64::disassemble(&[0x58], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
     }
@@ -310,15 +310,15 @@ mod test_work {
         if let Some(ins) =
             X86_64::disassemble(&[0x48, 0x39, 0xD8], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
     }
@@ -328,15 +328,15 @@ mod test_work {
         if let Some(ins) =
             X86_64::disassemble(&[0x48, 0xF7, 0xE1], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
     }
@@ -346,15 +346,15 @@ mod test_work {
         if let Some(ins) =
             X86_64::disassemble(&[0xF3, 0x48, 0x0F, 0xB8, 0xC1], 0x1000)
         {
-            println!("ins: {:?}", ins);
+            debugln!("ins: {:?}", ins);
 
             let x86_64 = X86_64;
             let work = Work::new(&x86_64);
             let res = work.work_instruction(&ins);
-            println!("res: {:?}", res);
+            debugln!("res: {:?}", res);
 
         } else {
-            println!("failed disassembling");
+            debugln!("failed disassembling");
             return;
         }
     }
@@ -362,7 +362,7 @@ mod test_work {
 }
 
 fn test_run() {
-    println!("Hello, world!");
+    debugln!("Hello, world!");
     //test_work::new_work();
     //test_work::inc_al();
     //test_work::add_eax_ebx();
@@ -405,7 +405,7 @@ fn work_code(arch: &str, bin_code: &str) {
     let dis = disassemble(&arch, &bin_vec, 0).unwrap();
     let work = Work::new(&arch);
     let res = work.work_instruction(&dis);
-    println!("Res: {:?}", res);
+    debugln!("Res: {:?}", res);
 }
 
 fn main() {
@@ -441,7 +441,7 @@ fn main() {
     } else if matches.is_present("test") {
         test_run();
     } else {
-        println!("Specify `bin_code` or `test` options");
+        debugln!("Specify `bin_code` or `test` options");
     }
 
 }

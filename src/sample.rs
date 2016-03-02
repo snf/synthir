@@ -138,7 +138,7 @@ pub struct ConstSampler {
 impl ValueSamplerStatic for ConstSampler {
     fn rounds() -> usize { 28 }
     fn get_value_static(round: usize, curr: usize, width: u32) -> BigUint {
-        // println!("reting value, round: {}, curr: {}, width: {}",
+        // debugln!("reting value, round: {}, curr: {}, width: {}",
         //         round, curr, width);
         match round {
             0 ... 1 => {
