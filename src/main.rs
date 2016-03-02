@@ -12,6 +12,7 @@ extern crate llvm_assemble;
 extern crate z3;
 extern crate itertools;
 extern crate permutohedron;
+extern crate clap;
 extern crate crossbeam;
 extern crate synthir_execute as execute;
 
@@ -28,7 +29,6 @@ pub mod definitions;
 pub mod native;
 pub mod disassembler;
 pub mod assembler;
-//pub mod synth;
 pub mod sample;
 pub mod stochastic;
 pub mod templates;
@@ -360,7 +360,7 @@ mod test_work {
 
 }
 
-fn main() {
+fn test_run() {
     println!("Hello, world!");
     //test_work::new_work();
     //test_work::inc_al();
@@ -382,4 +382,59 @@ fn main() {
     //test_work::cmp_rax_rbx();
     //test_stochastic::mul_rcx();
     //test_work::w_vaddps();
+}
+
+fn work_code(arch: &str, bin_code: &str) {
+    use work::Work;
+    use disassembler::{disassemble};
+    use x86_64::X86_64;
+
+    let arch = match arch {
+        "x86_64" => X86_64,
+        _ => panic!("arch not supported yet")
+    };
+
+    //let dis = arch.idisassemble(&[0x90], 0);
+    let dis = disassemble(&arch, &[0x90], 0).unwrap();
+    let work = Work::new(&arch);
+    let res = work.work_instruction(&dis);
+    println!("Res: {:?}", res);
+}
+
+fn main() {
+    use clap::{Arg, App};
+
+    let matches = App::new("SynthIR")
+        .version("0.2")
+        .author("SNF <sebanfernandez@gmail.com>")
+        .about("Convert assembly to IR")
+        .arg(Arg::with_name("test")
+             .short("t")
+             .long("test")
+             .conflicts_with("bin_code")
+             .conflicts_with("arch")
+             .help("Run test_main()"))
+        .arg(Arg::with_name("arch")
+             .long("arch")
+             .help("Sets the architecture to use")
+             .takes_value(true)
+             .possible_value("x86_64")
+             .possible_value("arm"))
+        .arg(Arg::with_name("bin_code")
+             .long("binary")
+             .requires("arch")
+             .required(true)
+             .takes_value(true)
+             .help("Specify the code to be used (Ex: 90 for NOP)"))
+        .get_matches();
+
+    if let Some(bin_code) = matches.value_of("bin_code") {
+        let arch = matches.value_of("arch").unwrap();
+        work_code(arch, bin_code);
+    } else if matches.is_present("test") {
+        test_run();
+    } else {
+        println!("Specify `bin_code` or `test` options");
+    }
+
 }
