@@ -15,6 +15,7 @@ extern crate permutohedron;
 extern crate clap;
 extern crate crossbeam;
 extern crate synthir_execute as execute;
+extern crate rustc_serialize as serialize;
 
 extern crate test;
 
@@ -384,6 +385,12 @@ fn test_run() {
     //test_work::w_vaddps();
 }
 
+fn hex_2_byte_array(bin_code: &str) -> Vec<u8> {
+    use serialize::hex::{FromHex};
+    let bin_str = bin_code.from_hex().unwrap();
+    bin_str
+}
+
 fn work_code(arch: &str, bin_code: &str) {
     use work::Work;
     use disassembler::{disassemble};
@@ -394,8 +401,8 @@ fn work_code(arch: &str, bin_code: &str) {
         _ => panic!("arch not supported yet")
     };
 
-    //let dis = arch.idisassemble(&[0x90], 0);
-    let dis = disassemble(&arch, &[0x90], 0).unwrap();
+    let bin_vec = hex_2_byte_array(bin_code);
+    let dis = disassemble(&arch, &bin_vec, 0).unwrap();
     let work = Work::new(&arch);
     let res = work.work_instruction(&dis);
     println!("Res: {:?}", res);

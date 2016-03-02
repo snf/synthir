@@ -24,6 +24,7 @@ itertools = "0.4"
 permutohedron = "0.2"
 crossbeam = "0.2"
 clap = "2.1"
+rustc-serialize = "0.3"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"
