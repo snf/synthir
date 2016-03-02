@@ -223,6 +223,7 @@ impl<T: Clone> IndependentSample<T> for CloneWeightedChoice<T> {
         return self.items[idx + 1].item.clone();
     }
 }
+
 // Macro utils
 macro_rules! for_one {
     ($x:ident) => (1)
@@ -244,6 +245,18 @@ macro_rules! enum_and_list{
             }
         }
     }
+}
+
+macro_rules! debugln{
+    ($($arg:tt)*) => (
+        {
+            use std::io::Write;
+            match writeln!(&mut ::std::io::stderr(), $($arg)* ) {
+                Ok(_) => {},
+                Err(x) => panic!("Unable to write to stderr: {}", x),
+            }
+        }
+     )
 }
 
 #[cfg(test)]
