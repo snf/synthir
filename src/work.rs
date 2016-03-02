@@ -443,9 +443,9 @@ impl<'a, T: Native> Work<'a, T> {
 
     /// Get I/O sets for the specified instruction that will be used
     /// to approximate the semantics
-    pub fn get_io_sets(&self, ins: &Instruction,
-                       deps: &HashMap<Dep, Vec<Dep>>)
-                       -> Result<IOSets<Dep, BigUint>, ()>
+    fn get_io_sets(&self, ins: &Instruction,
+                   deps: &HashMap<Dep, Vec<Dep>>)
+                   -> Result<IOSets<Dep, BigUint>, ()>
     {
         // Initialize result store
         let mut io_sets: IOSets<Dep, BigUint> = HashMap::new();
@@ -861,6 +861,9 @@ impl<'a, T: Native> Work<'a, T> {
             progs.insert(self.dep_to_expr(&dep), exprs);
         }
         println!("Programs: {:?}", progs);
+
+        // XXX_ try to create a relation between the arguments and the
+        // Expr involved
 
         println!("================######=============");
 
