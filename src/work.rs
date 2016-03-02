@@ -42,26 +42,30 @@ impl<'a, T: Native> Work<'a, T> {
     fn replace_opnds_for_regs(&self, ins: &Instruction) -> Instruction {
         let mut used_ops: Vec<String> = Vec::new();
         let n_opnds = ins.opnds.iter().map(|opnd| {
-            let opnd_text = opnd.text.to_uppercase();
-            if self.def.has_reg(&opnd_text) {
-                if used_ops.contains(&opnd_text) {
-                    let avail_regs = self.def.get_reg_w_width(opnd.len);
+            if let Some(opnd_len) = opnd.len {
+                let opnd_text = opnd.text.to_uppercase();
+                if self.def.has_reg(&opnd_text) {
+                    if used_ops.contains(&opnd_text) {
+                        let avail_regs = self.def.get_reg_w_width(opnd_len);
+                        let r = avail_regs.iter()
+                            .filter(|r1| !used_ops.iter().any(|r2| &r2 == r1))
+                            .nth(0).unwrap().clone();
+                        used_ops.push(r.to_owned());
+                        Opnd::new(r, opnd.len)
+                    } else {
+                        used_ops.push(opnd_text);
+                        opnd.clone()
+                    }
+                } else {
+                    let avail_regs = self.def.get_reg_w_width(opnd_len);
                     let r = avail_regs.iter()
                         .filter(|r1| !used_ops.iter().any(|r2| &r2 == r1))
                         .nth(0).unwrap().clone();
                     used_ops.push(r.to_owned());
                     Opnd::new(r, opnd.len)
-                } else {
-                    used_ops.push(opnd_text);
-                    opnd.clone()
                 }
             } else {
-                let avail_regs = self.def.get_reg_w_width(opnd.len);
-                let r = avail_regs.iter()
-                    .filter(|r1| !used_ops.iter().any(|r2| &r2 == r1))
-                    .nth(0).unwrap().clone();
-                used_ops.push(r.to_owned());
-                Opnd::new(r, opnd.len)
+                opnd.clone()
             }
         }).collect();
         Instruction {

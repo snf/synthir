@@ -22,7 +22,7 @@ impl<T> Native for T where T: GenDefinition + Assemble + Disassemble {}
 
 #[derive(Clone, Debug)]
 pub struct Opnd {
-    pub len: u32,
+    pub len: Option<u32>,
     pub text: String
 }
 
@@ -33,16 +33,14 @@ pub struct Instruction {
 }
 
 impl Opnd {
-    pub fn new(text: &str, len: u32) -> Opnd {
+    pub fn new(text: &str, len: Option<u32>) -> Opnd {
         Opnd { text: text.to_owned(), len: len }
     }
-    pub fn text(&self) -> &str {
-        &self.text
-    }
+    pub fn text(&self) -> &str { &self.text }
 }
 
 impl Instruction {
-    pub fn new(mnemonic: &str, opnds: &[(&str, u32)]) -> Instruction
+    pub fn new(mnemonic: &str, opnds: &[(&str, Option<u32>)]) -> Instruction
     {
         Instruction {
             mnemonic: mnemonic.to_owned(),

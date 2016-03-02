@@ -9,20 +9,20 @@ use native::{Arch, Instruction};
 pub struct X86_64;
 
 impl X86_64 {
-    fn get_opnd_width(opnd: &str) -> u32 {
+    fn get_opnd_width(opnd: &str) -> Option<u32> {
         let definition = Self::gen_definition();
         if definition.has_reg(opnd) {
-            definition.get_reg_width(opnd)
+            Some(definition.get_reg_width(opnd))
         } else {
             // Parse it, it's (probably?) a memory pointer
             if opnd.starts_with("dword ptr") {
-                32
+                Some(32)
             } else if opnd.starts_with("qword ptr") {
-                64
+                Some(64)
             } else if opnd.starts_with("byte ptr") {
-                8
+                Some(8)
             } else {
-                panic!(format!("opnd: `{}` not supported", opnd))
+                None
             }
         }
     }
@@ -60,7 +60,7 @@ impl Disassemble for X86_64 {
         let (mnemonic, op_str) =
             Self::disassemble_arch(Arch::X86_64, bytes, address).unwrap();
 
-        let opnds: Vec<(&str, u32)> =
+        let opnds: Vec<(&str, Option<u32>)> =
             if op_str.trim().is_empty() {
                 Vec::new()
             } else {
