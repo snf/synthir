@@ -842,7 +842,7 @@ impl<'a, T: Native> Work<'a, T> {
         // Pretty print, or try at least
         let _ = io_sets.iter()
             .inspect(|&(k, v)| {
-                print!("{:?}: ", k);
+                debug!("{:?}: ", k);
                 let _ = v.iter()
                     .inspect(|&&(ref ks, ref res)| {
                         debugln!("Res: {} ", res);

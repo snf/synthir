@@ -259,6 +259,18 @@ macro_rules! debugln{
      )
 }
 
+macro_rules! debug{
+    ($($arg:tt)*) => (
+        {
+            use std::io::Write;
+            match write!(&mut ::std::io::stderr(), $($arg)* ) {
+                Ok(_) => {},
+                Err(x) => panic!("Unable to write to stderr: {}", x),
+            }
+        }
+     )
+}
+
 #[cfg(test)]
 mod test_util {
     use num::bigint::{BigUint, ToBigUint};
