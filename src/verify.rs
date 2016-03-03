@@ -286,12 +286,6 @@ pub fn are_equal(e1: &Expr, e2: &Expr, width: u32) -> bool {
     let ctx = z3.z3();
     let eq = ctx.eq(&ast1, &ast2);
     let model = ctx.check_and_get_model(&eq);
-    //ctx.prove(&eq, true);
-    // debugln!("model: {}", model.get_str());
-    // let regs = z3.get_regs();
-    // for (r, r_ast) in regs {
-    //     debugln!("{}: {}", r, model.eval(&r_ast).unwrap().get_u64().unwrap());
-    // }
     model.is_valid()
 }
 
@@ -316,6 +310,12 @@ pub fn equal_or_counter(e1: &Expr, e2: &Expr, width: u32)
         None
     } else {
         let mut map = HashMap::new();
+        // Get the AST values
+        debugln!("ast1_res: {}",
+                 model.eval(&ast1).unwrap().get_numstring().unwrap());
+        debugln!("ast2_res: {}",
+                 model.eval(&ast2).unwrap().get_numstring().unwrap());
+        // Get the expressions values
         let exprs = z3.get_exprs();
         for (e, e_ast) in exprs {
             let e_numstr = model.eval(&e_ast).unwrap().get_numstring().unwrap();
