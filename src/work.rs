@@ -776,7 +776,7 @@ impl<'a, T: Native> Work<'a, T> {
                             exprs.push(snd);
                         }
                     } else { panic!("couldn't emulate expr") }
-                    if count > 1 { panic!("solved failed us :(") }
+                    if count > 1 { panic!("solver failed us :(") }
                 } else {
                     panic!(
                         "verify_contrast_reduce couldn't execute counter example");
