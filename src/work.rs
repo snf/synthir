@@ -20,19 +20,19 @@ use verify::{equal_or_counter};
 
 /// This will start with an assembler instruction and will try getting
 /// to the IR transformation
-pub struct Work<'a, T: 'a+Native> {
-    arch: &'a T,
+pub struct Work<T: Native> {
     def: Definition,
+    _marker: ::std::marker::PhantomData<T>,
 }
 
 pub type IOSet<D, Val> = Vec<(HashMap<D, Val>, Val)>;
 pub type IOSets<D, Val> = HashMap<D, IOSet<D, Val>>;
 
-impl<'a, T: Native> Work<'a, T> {
-    pub fn new(arch: &T) -> Work<T> {
+impl<T: Native> Work<T> {
+    pub fn new() -> Work<T> {
         Work {
-            arch: arch,
-            def: T::gen_definition()
+            def: T::gen_definition(),
+            _marker: ::std::marker::PhantomData
         }
     }
 
@@ -211,7 +211,7 @@ impl<'a, T: Native> Work<'a, T> {
 
     /// Get an Execution where the Dep result was different from the
     /// one described.
-    fn get_exe_not_dep_res(&self,
+    fn get_exe_not_dep_res<'a>(&'a self,
                            cache: &mut LastCache<(Execution<'a>, ExecutionRes)>,
                            dep: &Dep, val: &BigUint)
                            -> Option<Execution>
@@ -888,8 +888,7 @@ fn test_get_io_sets() {
     use x86_64::X86_64;
     use disassembler::Disassemble;
 
-    let arch = X86_64;
-    let work = Work::new(&arch);
+    let work: Work<X86_64> = Work::new();
 
     // inc al
     let ins = X86_64::disassemble(&[0xFE, 0xC0], 0x1000).unwrap();
@@ -918,8 +917,7 @@ fn test_get_expr_inc_al() {
     use x86_64::X86_64;
     use disassembler::Disassemble;
 
-    let arch = X86_64;
-    let work = Work::new(&arch);
+    let work: Work<X86_64> = Work::new();
 
     // inc al
     let ins = X86_64::disassemble(&[0xFE, 0xC0], 0x1000).unwrap();
@@ -980,8 +978,7 @@ fn test_work() {
     use x86_64::X86_64;
     use disassembler::Disassemble;
 
-    let arch = X86_64;
-    let work = Work::new(&arch);
+    let work: Work<X86_64> = Work::new();
     let opnd1 = Opnd::new("eax", Some(32));
     let opnd2 = Opnd::new("eax", Some(32));
     let ins = Instruction {

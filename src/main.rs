@@ -37,6 +37,9 @@ pub mod x86_64;
 pub mod verify;
 pub mod work;
 
+use native::Native;
+use work::Work;
+
 mod test_stochastic {
     use num::bigint::ToBigUint;
     use std::collections::HashMap;
@@ -233,8 +236,8 @@ mod test_work {
     use work::{Work};
     use x86_64::X86_64;
 
-    pub fn new_work() {
-        Work::new(&X86_64);
+    pub fn new_work() -> Work<X86_64> {
+        Work::new()
     }
 
     pub fn inc_al() {
@@ -266,8 +269,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -283,8 +285,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -304,8 +305,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -323,8 +323,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -343,8 +342,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -361,8 +359,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -379,8 +376,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -397,8 +393,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -415,8 +410,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -433,8 +427,7 @@ mod test_work {
         {
             debugln!("ins: {:?}", ins);
 
-            let x86_64 = X86_64;
-            let work = Work::new(&x86_64);
+            let work: Work<X86_64> = Work::new();
             let res = work.work_instruction(&ins);
             debugln!("res: {:?}", res);
 
@@ -478,21 +471,23 @@ fn hex_2_byte_array(bin_code: &str) -> Vec<u8> {
     bin_str
 }
 
+
+fn work_code_t<T: Native>(bin_code: &str) {
+    let bin_vec = hex_2_byte_array(bin_code);
+    let dis = T::disassemble(&bin_vec, 0).unwrap();
+    let work: Work<T> = Work::new();
+    let res = work.work_instruction(&dis);
+    debugln!("Res: {:?}", res);
+}
+
 fn work_code(arch: &str, bin_code: &str) {
-    use work::Work;
-    use disassembler::{disassemble};
     use x86_64::X86_64;
 
     let arch = match arch {
-        "x86_64" => X86_64,
+        "x86_64" => work_code_t::<X86_64>(bin_code),
         _ => panic!("arch not supported yet")
     };
 
-    let bin_vec = hex_2_byte_array(bin_code);
-    let dis = disassemble(&arch, &bin_vec, 0).unwrap();
-    let work = Work::new(&arch);
-    let res = work.work_instruction(&dis);
-    debugln!("Res: {:?}", res);
 }
 
 fn main() {
