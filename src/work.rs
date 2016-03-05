@@ -982,8 +982,8 @@ fn test_work() {
 
     let arch = X86_64;
     let work = Work::new(&arch);
-    let opnd1 = Opnd::new("eax", 32);
-    let opnd2 = Opnd::new("eax", 32);
+    let opnd1 = Opnd::new("eax", Some(32));
+    let opnd2 = Opnd::new("eax", Some(32));
     let ins = Instruction {
         mnemonic: "mov".to_owned(),
         opnds: [opnd1, opnd2].to_owned()
