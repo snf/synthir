@@ -99,14 +99,18 @@ mod test_stochastic {
 }
 
 // When you don't trust your programs, you verify them exhaustively
-mod test_sub_eax_1 {
+mod test_emulator {
+    use num::bigint::BigUint;
     use num::bigint::ToBigUint;
     use num::traits::ToPrimitive;
     use std::collections::HashMap;
+    use num::traits::One;
 
+    use op::OpArith::*;
     use op::OpLogic::*;
     use op::OpUnary::*;
     use expr::Expr::*;
+    use expr::ExprType;
     use emulator::{State, execute_expr};
 
     // LogicOp(Xor, Reg("EAX", 32), LogicOp(Xor, UnOp(Neg, Reg("EAX",
@@ -141,6 +145,55 @@ mod test_sub_eax_1 {
         }
         debugln!("finished!");
     }
+
+    //ArithOp(ARShift, Int(BigUint { data: [1] }), LogicOp(LRShift,
+    // ArithOp(Mul, UnOp(Neg, Reg("SIL", 8), 1), LogicOp(Or,
+    // Int(BigUint { data: [8] }), Int(BigUint { data: [16] }), 8),
+    // Int(256)), ArithOp(SRem, Reg("AL", 8), ArithOp(Add, Reg("SIL",
+    // 8), Int(BigUint { data: [128] }), Int(8)), Int(256)), 16),
+    // Int(64))
+    pub fn test_bad_emulator() {
+        let sil = Reg("SIL".to_owned(), 8);
+        let al  = Reg("AL".to_owned(), 8);
+
+        let expr =
+            ArithOp(
+                ARShift,
+                Box::new(Int(BigUint::one())),
+                Box::new(LogicOp(
+                    LRShift,
+                    Box::new(ArithOp(
+                        Mul,
+                        Box::new(UnOp(
+                            Neg,
+                            Box::new(sil.clone()),
+                            1)),
+                        Box::new(LogicOp(
+                            Or,
+                            Box::new(Int(8.to_biguint().unwrap())),
+                            Box::new(Int(16.to_biguint().unwrap())),
+                            8)),
+                        ExprType::Int(256))),
+                    Box::new(ArithOp(
+                        SRem,
+                        Box::new(al.clone()),
+                        Box::new(ArithOp(
+                            Add,
+                            Box::new(sil.clone()),
+                            Box::new(Int(128.to_biguint().unwrap())),
+                            ExprType::Int(8))),
+                        ExprType::Int(256))),
+                    16)),
+                ExprType::Int(64));
+
+        let mut map = HashMap::new();
+        map.insert(al.clone(), BigUint::one());
+        map.insert(sil.clone(), 123.to_biguint().unwrap());
+        let state = State::borrow(&map);
+        let res = execute_expr(&state, &expr, 32);
+        debugln!("res: {:?}", res);
+    }
+
 }
 
 mod test_work {
@@ -379,10 +432,11 @@ fn test_run() {
     //test_work::push_rax();
     //test_work::pop_rax();
     //test_work::popcnt_rax_rcx();
-    test_work::mul_rcx();
+    //test_work::mul_rcx();
     //test_work::cmp_rax_rbx();
     //test_stochastic::mul_rcx();
     //test_work::w_vaddps();
+    test_emulator::test_bad_emulator();
 }
 
 fn hex_2_byte_array(bin_code: &str) -> Vec<u8> {

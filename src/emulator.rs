@@ -320,7 +320,7 @@ pub fn execute_unsigned_arithop(op: OpArith, v1: &Value, v2: &Value, width: u32)
             }
             b1 / b2
         },
-        OpArith::Mod => {
+        OpArith::URem => {
             if b2.is_zero() {
                 return Err(());
             }
@@ -375,7 +375,7 @@ pub fn execute_signed_arithop(op: OpArith, v1: &Value, v2: &Value, width: u32)
                 Ok(Value::new(val1, width))
             }
         },
-        OpArith::SMod => {
+        OpArith::SRem => {
             let v2_unsigned = v2.unsign().value;
             if v2_unsigned.is_zero() {
                 return Err(());
@@ -396,12 +396,12 @@ fn execute_arithop(op: OpArith, v1: &Value, v2: &Value, ty: ExprType)
     };
     match op {
         // These ones need special treatment due to sign
-        OpArith::SMod | OpArith::SDiv | OpArith::ARShift =>
+        OpArith::SRem | OpArith::SDiv | OpArith::ARShift =>
             execute_signed_arithop(op, v1, v2, width),
         // The ones not depending in the sign can be processed
         // generically and then casted
         OpArith::Add | OpArith::Sub | OpArith::Mul |
-        OpArith::Div | OpArith::Mod | OpArith::ALShift =>
+        OpArith::Div | OpArith::URem | OpArith::ALShift =>
             execute_unsigned_arithop(op, v1, v2, width)
     }
 }
@@ -529,7 +529,11 @@ pub fn execute_bits(high: u32, low: u32, v: &Value) -> Result<Value,()> {
     Ok(Value::new(val >> (low as usize), new_width))
 }
 
+// static mut E_I: u32 = 0;
+
 fn execute_expr_2(state: &State, e: &Expr, w: u32) -> Result<Value,()> {
+    // unsafe { debugln!("[{}] Executing: {:?}", E_I, e) };
+    // unsafe { E_I += 1 };
     let res = match *e {
         Reg(ref n, _) => try!(state.get_expr_value(e)),
         // XXX_ implement me, but I have the feeling that it should be
@@ -574,6 +578,8 @@ fn execute_expr_2(state: &State, e: &Expr, w: u32) -> Result<Value,()> {
             execute_bits(b, b, &try!(execute_expr(state, &*e, b + 1)))),
         _ => panic!(format!("not supported: {:?}", e))
     };
+    // unsafe { E_I -= 1 };
+    // unsafe { debugln!("[{}] res: {:?}", E_I, res) };
     Ok(res)
 }
 
@@ -708,17 +714,17 @@ mod tests {
         assert_eq!(vres.unwrap().value, 0x10.to_biguint().unwrap());
     }
     #[test]
-    fn test_SMod_negative_negative() {
+    fn test_SRem_negative_negative() {
         let v1 = Value { width: 32, value: 0xffFF_ff01u32.to_biguint().unwrap() };
         let v2 = Value { width: 32, value: 0xffFF_ffF0u32.to_biguint().unwrap() };
-        let vres = execute_signed_arithop(OpArith::SMod, &v1, &v2, 32);
+        let vres = execute_signed_arithop(OpArith::SRem, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0xffFF_ffF1u32.to_biguint().unwrap());
     }
     #[test]
-    fn test_SMod_positive_negative() {
+    fn test_SRem_positive_negative() {
         let v1 = Value { width: 32, value: 0x101u32.to_biguint().unwrap() };
         let v2 = Value { width: 32, value: 0xffFF_ffF0u32.to_biguint().unwrap() };
-        let vres = execute_signed_arithop(OpArith::SMod, &v1, &v2, 32);
+        let vres = execute_signed_arithop(OpArith::SRem, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 1u32.to_biguint().unwrap());
     }
     #[test]

@@ -26,7 +26,7 @@ impl<T> Template for T where T: Template2 {}
 struct ParityTemplate;
 
 impl ParityTemplate {
-    /// Mod(Add(Bit(0), Add(Bit(1), Add(Bit....))), 2)
+    /// URem(Add(Bit(0), Add(Bit(1), Add(Bit....))), 2)
     fn parity_flag(e: &Expr, width: u32) -> Expr {
         let mut expr_builder = ExprBuilder::new();
         for i in 0..width {
@@ -39,7 +39,7 @@ impl ParityTemplate {
         }
         expr_builder.preinsert_with_second(
             &Expr::ArithOp(
-                OpArith::Mod,
+                OpArith::URem,
                 Box::new(Expr::NoOp),
                 Box::new(Expr::Int(2.to_biguint().unwrap())),
                 ExprType::Int(width))

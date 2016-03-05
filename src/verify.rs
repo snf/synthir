@@ -146,7 +146,7 @@ pub fn translate_arithop<'a>(z3: &'a Z3Store<'a>, op: OpArith, a1: &Z3Ast, a2: &
         ExprType::Int(i) => {
             match op {
                 // If using signed operations sign extend
-                OpArith::SDiv | OpArith::SMod | OpArith::ARShift =>
+                OpArith::SDiv | OpArith::SRem | OpArith::ARShift =>
                     (adjust_width(z3, a1, i, true),
                      adjust_width(z3, a2, i, true))
                     ,
@@ -163,9 +163,8 @@ pub fn translate_arithop<'a>(z3: &'a Z3Store<'a>, op: OpArith, a1: &Z3Ast, a2: &
         OpArith::Mul => ctx.bvmul(&a1p, &a2p),
         OpArith::Div => ctx.bvudiv(&a1p, &a2p),
         OpArith::SDiv => ctx.bvsdiv(&a1p, &a2p),
-        // URem = UMod
-        OpArith::Mod => ctx.bvurem(&a1p, &a2p),
-        OpArith::SMod => ctx.bvsmod(&a1p, &a2p),
+        OpArith::URem => ctx.bvurem(&a1p, &a2p),
+        OpArith::SRem => ctx.bvsrem(&a1p, &a2p),
         OpArith::ARShift => ctx.bvashr(&a1p, &a2p),
         OpArith::ALShift => ctx.bvshl(&a1p, &a2p),
     }

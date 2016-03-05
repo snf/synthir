@@ -1,7 +1,7 @@
 use rand::{Rand, Rng};
 
 enum_and_list!(OpArith, OPARITH,
-               Add, Sub, Mul, Div, SDiv, Mod, SMod, ARShift, ALShift);
+               Add, Sub, Mul, Div, SDiv, URem, SRem, ARShift, ALShift);
 
 enum_and_list!(OpLogic, OPLOGIC,
                And, Xor, Or, LLShift, LRShift);
