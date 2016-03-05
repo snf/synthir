@@ -258,7 +258,7 @@ mod test_work {
         //     work.gen_expr_from_io_set(&ins, dep, ioset);
         // }
 
-        if let Some(ins) = X86_64::disassemble(&[0xFE, 0xC0], 0x1000)
+        if let Ok(ins) = X86_64::disassemble(&[0xFE, 0xC0], 0x1000)
         // inc rax
         //if let Some(ins) = X86_64::disassemble(&[0x48, 0xFF, 0xC0], 0x1000)
         // sub al
@@ -279,7 +279,7 @@ mod test_work {
     }
 
     pub fn add_eax_ebx() {
-        if let Some(ins) = X86_64::disassemble(&[0x01, 0xD8], 0x1000)
+        if let Ok(ins) = X86_64::disassemble(&[0x01, 0xD8], 0x1000)
         {
             debugln!("ins: {:?}", ins);
 
@@ -299,7 +299,7 @@ mod test_work {
     // floating-point elements in a and b, and store the results in
     // dst.
     pub fn vandnps() {
-        if let Some(ins) =
+        if let Ok(ins) =
             X86_64::disassemble(&[0xC5, 0xF4, 0x55, 0xC2], 0x1000)
         {
             debugln!("ins: {:?}", ins);
@@ -318,7 +318,7 @@ mod test_work {
     // Add packed double-precision (64-bit) floating-point elements in
     // a and b, and store the results in dst.
     pub fn vxorpd() {
-        if let Some(ins) =
+        if let Ok(ins) =
             X86_64::disassemble(&[0xC5, 0xF5, 0x57, 0xC2], 0x1000)
         {
             debugln!("ins: {:?}", ins);
@@ -338,7 +338,7 @@ mod test_work {
     // a and b, and store the results in dst.
     pub fn w_vaddps() {
 
-        if let Some(ins) =
+        if let Ok(ins) =
             X86_64::disassemble(&[0xC5, 0xF4, 0x58, 0xC2], 0x1000)
         {
             debugln!("ins: {:?}", ins);
@@ -356,7 +356,7 @@ mod test_work {
 
     pub fn push_rax() {
 
-        if let Some(ins) =
+        if let Ok(ins) =
             X86_64::disassemble(&[0x50], 0x1000)
         {
             debugln!("ins: {:?}", ins);
@@ -374,7 +374,7 @@ mod test_work {
 
     pub fn pop_rax() {
 
-        if let Some(ins) =
+        if let Ok(ins) =
             X86_64::disassemble(&[0x58], 0x1000)
         {
             debugln!("ins: {:?}", ins);
@@ -392,7 +392,7 @@ mod test_work {
 
     pub fn cmp_rax_rbx() {
 
-        if let Some(ins) =
+        if let Ok(ins) =
             X86_64::disassemble(&[0x48, 0x39, 0xD8], 0x1000)
         {
             debugln!("ins: {:?}", ins);
@@ -410,7 +410,7 @@ mod test_work {
 
     pub fn mul_rcx() {
 
-        if let Some(ins) =
+        if let Ok(ins) =
             X86_64::disassemble(&[0x48, 0xF7, 0xE1], 0x1000)
         {
             debugln!("ins: {:?}", ins);
@@ -428,7 +428,7 @@ mod test_work {
 
     pub fn popcnt_rax_rcx() {
 
-        if let Some(ins) =
+        if let Ok(ins) =
             X86_64::disassemble(&[0xF3, 0x48, 0x0F, 0xB8, 0xC1], 0x1000)
         {
             debugln!("ins: {:?}", ins);

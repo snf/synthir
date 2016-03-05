@@ -2,7 +2,7 @@ use native::{Arch, Instruction};
 use capstone as cs;
 
 pub trait Disassemble {
-    fn disassemble(bytes: &[u8], address: u64) -> Option<Instruction>;
+    fn disassemble(bytes: &[u8], address: u64) -> Result<Instruction, ()>;
 
     fn get_registers(ins: &Instruction) -> Vec<&'static str>;
 
@@ -10,7 +10,7 @@ pub trait Disassemble {
     /// for some arch.
     /// Return (mnemonic, opnd_str).
     fn disassemble_arch(arch: Arch, bytes: &[u8], address: u64)
-                        -> Option<(String, String)>
+                        -> Result<(String, String), ()>
     {
         let cs_arch = match arch {
             Arch::X86 | Arch::X86_64 => cs::Arch::X86,
@@ -22,37 +22,18 @@ pub trait Disassemble {
             Arch::X86_64 | Arch::Arm64 => cs::MODE_64,
             _ => panic!("not supported")
         };
-        match cs::Engine::new(cs_arch, cs_mode) {
-            Ok(e) => {
-                match e.disasm(bytes, address, 1) {
-                    Ok(mut insns) => {
-                        if insns.len() != 1 {
-                            panic!("Should be only one instruction at a time");
-                        }
-                        let insn = insns.remove(0);
-                        Some((insn.mnemonic, insn.op_str))
-                        // let opnds: Vec<&str> =
-                        //     insn.op_str.split(',')
-                        //     .collect();
-                        // Some(Instruction::new(Arch::X86_64,
-                        //                       &insn.mnemonic,
-                        //                       opnds)
-                        //     )
-                    },
-                    Err(err) => {
-                        //panic!("# Engine::disasm failed: {:?} {:?}", err.code, err.desc);
-                        None
-                    }
-                }},
-            Err(err) => {
-                panic!("#Engine::new failed: {:?} {:?}", err.code, err.desc);
-            }
+        let e = try!(cs::Engine::new(cs_arch, cs_mode).map_err(|e| ()));
+        let mut insns = try!(e.disasm(bytes, address, 1).map_err(|e| ()));
+        if insns.len() != 1 {
+            panic!("Should be only one instruction at a time");
         }
+        let insn = insns.remove(0);
+        Ok((insn.mnemonic, insn.op_str))
     }
 }
 
 pub fn disassemble<T: Disassemble>(_ignore: &T, bytes: &[u8], address: u64)
-                                   -> Option<Instruction>
+                                   -> Result<Instruction, ()>
 {
         T::disassemble(bytes, address)
 }

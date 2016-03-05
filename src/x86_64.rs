@@ -56,26 +56,20 @@ impl Disassemble for X86_64 {
         res
     }
 
-    fn disassemble(bytes: &[u8], address: u64) -> Option<Instruction> {
-        if let Some(disas) =
-            Self::disassemble_arch(Arch::X86_64, bytes, address)
-        {
-            let (mnemonic, op_str) = disas;
-            let opnds: Vec<(&str, Option<u32>)> =
-                if op_str.trim().is_empty() {
-                    Vec::new()
-                } else {
-                    op_str.split(',')
-                        .map(|s| s.trim())
-                        .map(|s| (s, Self::get_opnd_width(s)))
-                        .collect()
-                };
-            Some(Instruction::new(&mnemonic,
-                                  &opnds))
-
-        } else {
-            None
-        }
+    fn disassemble(bytes: &[u8], address: u64) -> Result<Instruction, ()> {
+        let disas = try!(Self::disassemble_arch(Arch::X86_64, bytes, address));
+        let (mnemonic, op_str) = disas;
+        let opnds: Vec<(&str, Option<u32>)> =
+            if op_str.trim().is_empty() {
+                Vec::new()
+            } else {
+                op_str.split(',')
+                    .map(|s| s.trim())
+                    .map(|s| (s, Self::get_opnd_width(s)))
+                    .collect()
+            };
+        Ok(Instruction::new(&mnemonic,
+                            &opnds))
     }
 }
 
