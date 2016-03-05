@@ -20,7 +20,7 @@ fn init_masks() {
     let mut v_a = Box::new(Vec::new());
     let mut v_b = Box::new(Vec::new());
 
-    for i in 0..1024 {
+    for i in 0..2048 {
         let bit_mask = BigUint::one() << i;
         let all_mask = &bit_mask - BigUint::one();
         v_a.push(all_mask);
@@ -218,9 +218,15 @@ impl Value {
 /// Sign extend (should only be used by adjust_width)
 fn sign_ext(v: &Value, width: u32) -> Value {
     let sign = v.get_sign();
-    let mut unsigned = v.unsign();
-    unsigned.set_width(width);
-    unsigned.set_sign(sign)
+    if sign == Sign::Positive {
+        let mut val = v.clone();
+        val.set_width(width);
+        val
+    } else {
+        let mut val = v.unsign();
+        val.set_width(width);
+        val.set_sign(Sign::Negative)
+    }
 }
 
 /// Extract bits (should only be used by adjust_width)
