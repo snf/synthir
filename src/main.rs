@@ -194,6 +194,38 @@ mod test_emulator {
         debugln!("res: {:?}", res);
     }
 
+    //LogicOp(LRShift, Int(BigUint { data: [1] }), ArithOp(SRem,
+    // LogicOp(And, Reg("AL", 8), Reg("SIL", 8), 128), UnOp(Neg,
+    // Int(BigUint { data: [1] }), 4), Int(16)), 256)
+    pub fn test_bad_emulator2() {
+        let sil = Reg("SIL".to_owned(), 8);
+        let al  = Reg("AL".to_owned(), 8);
+
+        let expr =
+            LogicOp(
+                LRShift,
+                Box::new(Int(BigUint::one())),
+                Box::new(ArithOp(
+                    SRem,
+                    Box::new(LogicOp(
+                        And,
+                        Box::new(al.clone()),
+                        Box::new(sil.clone()),
+                        128)),
+                    Box::new(UnOp(
+                        Neg,
+                        Box::new(Int(BigUint::one())),
+                        4)),
+                    ExprType::Int(16))),
+                256);
+
+        let mut map = HashMap::new();
+        map.insert(al.clone(), BigUint::one());
+        map.insert(sil.clone(), BigUint::one());
+        let state = State::borrow(&map);
+        let res = execute_expr(&state, &expr, 32);
+        debugln!("res: {:?}", res);
+    }
 }
 
 mod test_work {
@@ -436,7 +468,8 @@ fn test_run() {
     //test_work::cmp_rax_rbx();
     //test_stochastic::mul_rcx();
     //test_work::w_vaddps();
-    test_emulator::test_bad_emulator();
+    //test_emulator::test_bad_emulator();
+    test_emulator::test_bad_emulator2();
 }
 
 fn hex_2_byte_array(bin_code: &str) -> Vec<u8> {

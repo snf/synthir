@@ -218,7 +218,7 @@ impl Value {
 /// Sign extend (should only be used by adjust_width)
 fn sign_ext(v: &Value, width: u32) -> Value {
     let sign = v.get_sign();
-    let mut unsigned = v.clone();
+    let mut unsigned = v.unsign();
     unsigned.set_width(width);
     unsigned.set_sign(sign)
 }
