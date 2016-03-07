@@ -200,6 +200,18 @@ impl Definition {
     /// Get regs size
     pub fn get_regs_size(&self) -> u32 { self.regs_size }
 
+    /// Get the regs' HashMap
+    pub fn get_regs(&self) -> &HashMap<&'static str, RegDefinition> {
+        &self.regs
+    }
+
+    /// Get the subregs' HashMap
+    pub fn get_sub_regs(&self)
+                        -> &HashMap<&'static str, SubRegDefinition>
+    {
+        &self.sub_regs
+    }
+
     // XXX_ implement me in Definition
     // pub fn sys_width(&self) -> u32 { 64 }
 
