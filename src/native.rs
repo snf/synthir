@@ -65,6 +65,7 @@ impl Instruction {
         T::assemble(&s)
     }
 
+    pub fn get_opnds(&self) -> &[Opnd] { &self.opnds }
 }
 
 impl Display for Instruction {
