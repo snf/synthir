@@ -66,6 +66,7 @@ impl Instruction {
     }
 
     pub fn get_opnds(&self) -> &[Opnd] { &self.opnds }
+    pub fn get_mnemonic(&self) -> &str { &self.mnemonic }
 }
 
 impl Display for Instruction {

@@ -19,6 +19,7 @@ pub struct RegDefinition {
     // The bit width (32bits: width=32)
     pub width: u32,
     pub vector: bool,
+    pub sp: bool,
     pub fp: bool,
     pub ip: bool,
     pub segment: bool,
@@ -48,6 +49,12 @@ impl RegDefinition {
     pub fn byte_width(&self) -> u32 { self.width / 8 }
     pub fn bit_width(&self) -> u32 { self.width }
     pub fn offset(&self) -> u32 { self.offset }
+    pub fn is_vector(&self) -> bool { self.vector }
+    pub fn is_fp(&self) -> bool { self.fp }
+    pub fn is_ip(&self) -> bool { self.ip }
+    pub fn is_sp(&self) -> bool { self.sp }
+    pub fn is_segment(&self) -> bool { self.segment }
+    pub fn is_flags(&self) -> bool { self.flags }
 }
 
 #[derive(Clone)]
@@ -105,6 +112,7 @@ impl SubRegDefinition {
     }
     pub fn bit_width(&self) -> u32 { self.width }
     pub fn from_bit(&self) -> u32 { self.from_bit }
+    pub fn get_parent(&self) -> &'static str { self.parent }
 }
 
 #[derive(Clone)]
