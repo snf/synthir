@@ -37,6 +37,8 @@ impl Opnd {
         Opnd { text: text.to_owned(), len: len }
     }
     pub fn text(&self) -> &str { &self.text }
+    pub fn get_text(&self) -> &str { &self.text }
+    pub fn get_width(&self) -> Option<u32> { self.len }
 }
 
 impl Instruction {
