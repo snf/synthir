@@ -326,11 +326,14 @@ impl Definition {
             None
         } else if self.sub_regs.contains_key(name) {
             let parent = self.sub_regs[name].parent;
-            if self.regs[parent].flags {
-                None
-            } else {
-                Some(self.sub_regs[name].parent)
-            }
+            // XXX_ Seba from the past: any reason why I had
+            // implemented it without flags?
+            Some(self.sub_regs[name].parent)
+            // if self.regs[parent].flags {
+            //     None
+            // } else {
+            //     Some(self.sub_regs[name].parent)
+            // }
         } else {
             panic!("always check the register exists")
         }
