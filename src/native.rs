@@ -20,13 +20,13 @@ pub enum Arch {
 pub trait Native: GenDefinition + Assemble + Disassemble { }
 impl<T> Native for T where T: GenDefinition + Assemble + Disassemble {}
 
-#[derive(Clone, Debug)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct Opnd {
     pub len: Option<u32>,
     pub text: String
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct Instruction {
     pub mnemonic: String,
     pub opnds: Vec<Opnd>,
