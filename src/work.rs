@@ -387,17 +387,10 @@ impl<T: Native> Work<T> {
                 if !self.def.is_ip(m_reg) &&
                     !self.def.is_flags(m_reg)
                 {
-                    let reg_to_add =
-                    {
-                        let mut curr = m_reg;
-                        for r in res.keys() {
-                            let r = r.get_reg();
-                            if self.def.is_super_reg(r, curr) {
-                                curr = r;
-                            }
-                        }
-                        curr
-                    };
+                    let reg_to_add = res.keys()
+                        .map(|d| d.get_reg())
+                        .find(|r| self.def.is_super_reg(r, m_reg))
+                        .unwrap_or(m_reg);
                     let mut dep_to_add = Dep::new(reg_to_add);
                     dep_to_add.bit_width(self.def.get_reg_width(reg_to_add));
                     if !mod_regs.contains(&dep_to_add) {
