@@ -118,7 +118,7 @@ impl<T: Native> Work<T> {
         let mut exec = Execution::new(&self.def);
         let text_code = self.def.inst_to_text_code(ins, exec.regs_before_addr(),
                                                    exec.regs_after_addr());
-        let bin_code = T::assemble(&text_code).unwrap();
+        let bin_code = T::assemble(&text_code).expect("assemble should not fail");
 
         // Check if this instruction depends on memory (not null just in case)
         let unmapped = BigUint::one();
