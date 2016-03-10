@@ -1,6 +1,6 @@
 use emulator::{State, execute_expr};
 use expr::{Expr, ExprType, ExprBuilder};
-use op::{OpArith, OpLogic, OpUnary, OpBool, OpCast};
+use op::{OpArith, OpBool, OpCast};
 
 use num::bigint::{BigUint, ToBigUint};
 use num::traits::{One, Zero};//, ToPrimitive};
