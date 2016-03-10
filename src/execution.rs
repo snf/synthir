@@ -77,7 +77,9 @@ impl Ord for Dep {
     }
 }
 impl PartialEq for Dep {
-    fn eq(&self, other: &Dep) -> bool { self.base == other.base }
+    fn eq(&self, other: &Dep) -> bool {
+        self.base == other.base && self.mem == other.mem
+    }
 }
 impl Eq for Dep {}
 impl Hash for Dep {

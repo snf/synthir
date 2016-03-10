@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap};
 use std::sync::{Mutex};
 use num::traits::{One, Zero, ToPrimitive};
 use num::bigint::{ToBigUint, BigUint};
@@ -222,6 +222,85 @@ impl<T: Native> Work<T> {
             .map(|&(ref e, _)| e.clone())
     }
 
+
+    /// Unify when the registers modified are parents/children of the
+    /// others
+    fn unify_parent_deps(&self,
+                      o_regs: &HashMap<Dep, Vec<Dep>>)
+        -> HashMap<Dep, Vec<Dep>>
+    {
+        let mut n_regs: HashMap<Dep, Vec<Dep>> = HashMap::new();
+        let mut done: Vec<&Dep> = Vec::new();
+        for dep in o_regs.keys() {
+            let reg = dep.get_reg();
+            if done.contains(&dep) { continue }
+            if self.def.is_ip(reg) || self.def.is_flag(reg) {
+                n_regs.insert(dep.clone(), o_regs[dep].clone());
+            } else {
+                let supers: Vec<(&Dep, &str)> = o_regs.keys()
+                    .filter(|d| self.def.is_super_reg(d.get_reg(), reg))
+                    .map(|d| (d, d.get_reg()))
+                    .collect();
+                if supers.is_empty() {
+                    // If it doesn't have super regs, insert it
+                    n_regs.insert(dep.clone(), o_regs[dep].clone());
+                } else {
+                    // Else get all the super regs and get the "superest"
+                    let (supers_d, supers_r): (Vec<&Dep>, Vec<&str>) =
+                        supers.iter().cloned().unzip();
+                    let supers_r: Vec<&str> =
+                        self.def.filter_children_regs(&supers_r);
+                    let supers_d: Vec<&Dep> = supers.into_iter()
+                        .filter(|&(_, r)| supers_r.contains(&r))
+                        .map(|(d, _)| d)
+                        .collect();
+                    // Take the superest
+                    if supers_d.len() != 1 {
+                        panic!("supers_d should only have one reg at this point \
+                                but instead has: {:?}",
+                               supers_r)
+                    }
+                    let s_dep = supers_d[0];
+                    // Unify all the deps in the super reg
+                    let mut s_d_deps: Vec<Dep> = Vec::new();
+                    for d_dep in supers_d.iter().flat_map(
+                        |&d| o_regs.get(d).unwrap())
+                    {
+                        if !s_d_deps.contains(&d_dep) {
+                            s_d_deps.push(d_dep.clone());
+                        }
+                    }
+                    // Save it with the superest
+                    n_regs.insert(s_dep.clone(), s_d_deps);
+                    // Ignore all the super regs we processed
+                    for d in supers_d { done.push(d); }
+                }
+            }
+            done.push(dep);
+        }
+        n_regs
+    }
+
+    /// Unify when the registers are parents/children of the others
+    fn unify_regs(&self, regs: &mut Vec<&str>)
+    {
+        let mut idx_to_remove = Vec::new();
+        for (idx, reg) in regs.iter().enumerate() {
+            if self.def.is_ip(reg) || self.def.is_flag(reg) {
+                continue;
+            }
+            if regs.iter().any(|r| self.def.is_super_reg(reg, r)) {
+                idx_to_remove.push(idx);
+            }
+        }
+
+        // Reverse the vector so we start removing the elements form
+        // the back and indexes don't change
+        for idx in idx_to_remove.iter().rev() {
+            regs.remove(*idx);
+        }
+    }
+
     /// Get the register/memory dependencies of an instruction, it
     /// will try to inherit them, executing the instructions using
     /// different values for the registers.
@@ -246,7 +325,7 @@ impl<T: Native> Work<T> {
         // a special way
         let mut cache: LastCache<(Execution, ExecutionRes)> = LastCache::new(2000);
 
-        // ### Setup all the memory registers here #####
+        // Setup all the memory registers
         let mem_regs_str: Vec<&'static str> = mem_regs.iter()
             .map(|d| d.get_reg()).collect();
         let mut all_test: Vec<Dep> = Vec::new();
@@ -335,42 +414,10 @@ impl<T: Native> Work<T> {
                 if new_mem != old_mem {
                     mod_regs.push(mem.clone());
                 }
-                // debugln!("mem byte width: {:?}", mem.get_byte_width());
-                // let mod_bytes = self.def.get_min_modified_len_bytes(
-                //     new_mem,
-                //     old_mem,
-                //     mem.get_byte_width());
-                // Get if there was a memory of more width already
-                // saved before and use that one instead.
-                // let mut found = false;
-                // for t_mem in res.keys() {
-                //     if t_mem.get_reg() == mem.get_reg() {
-                //         let to_insert =
-                //             if t_mem.get_byte_width() > mod_bytes {
-                //                 t_mem.clone()
-                //             } else {
-                //                 let mut n_mem = mem.clone();
-                //                 n_mem.byte_width(mod_bytes);
-                //                 n_mem
-                //             };
-                //         found = true;
-                //         mod_regs.push(to_insert);
-                //     }
-                // }
-                // XXX_
-                //assert_eq!(found, true);
             }
 
             debugln!("tmp_mod_regs: {:?}", tmp_mod_regs);
             debugln!("mod_regs: {:?}", mod_regs);
-
-            // let mut rax = Dep::new("RAX");
-            // let rax = rax.bit_width(64);
-            // debugln!("RAX: 0x{:x}", exec.get_dep_value(rax).to_u64().unwrap());
-            // debugln!("RAX after: 0x{:x}", exe_res.get_dep(rax).to_u64().unwrap());
-            // let mut rsp_m = Dep::new("RSP");
-            // let rsp_m = rsp_m.bit_width(64).mem(true);
-            // debugln!("[RSP]: 0x{:x}", exec.get_dep_value(rsp_m).to_u64().unwrap());
 
             // For each modified value, start modifying one by one to
             // detect which ones modifies this register. If no
@@ -448,6 +495,8 @@ impl<T: Native> Work<T> {
             //debugln!("mod regs: {:?}", &mod_regs);
         }
         debugln!("res: {:?}", res);
+        let res = self.unify_parent_deps(&res);
+        debugln!("after unify: {:?}", res);
         Ok(res)
     }
 
