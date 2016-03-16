@@ -22,8 +22,8 @@ impl<T> Native for T where T: GenDefinition + Assemble + Disassemble {}
 
 #[derive(Clone,Debug,PartialEq)]
 pub struct Opnd {
-    pub len: Option<u32>,
-    pub text: String
+    len: Option<u32>,
+    text: String
 }
 
 #[derive(Clone,Debug,PartialEq)]
@@ -36,7 +36,6 @@ impl Opnd {
     pub fn new(text: &str, len: Option<u32>) -> Opnd {
         Opnd { text: text.to_owned(), len: len }
     }
-    pub fn text(&self) -> &str { &self.text }
     pub fn get_text(&self) -> &str { &self.text }
     pub fn get_width(&self) -> Option<u32> { self.len }
 }
@@ -56,7 +55,7 @@ impl Instruction {
 
     pub fn to_text(&self) -> String {
         let opnds: String = self.opnds.iter()
-            .map(|s| s.text())
+            .map(|s| s.get_text())
             .collect::<Vec<&str>>()
             .join(",");
         format!("{} {}", self.mnemonic, opnds)
@@ -76,7 +75,7 @@ impl Display for Instruction {
         let _ = formatter.write_str(&self.mnemonic);
         let _ = formatter.write_str(" ");
         for opnd in &self.opnds {
-            let _ = formatter.write_str(opnd.text());
+            let _ = formatter.write_str(opnd.get_text());
         }
         Ok(())
     }

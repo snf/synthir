@@ -43,7 +43,7 @@ impl Disassemble for X86_64 {
         let mut res = Vec::new();
         let def = Self::gen_definition();
         for opnd in &ins.opnds {
-            let t = opnd.text().to_uppercase();
+            let t = opnd.get_text().to_uppercase();
             // Try to match Reg or SubReg
             for &reg_name in def.regs.keys().chain(def.sub_regs.keys()) {
                 // XXX_ contains can match name parts (AX in EAX)
