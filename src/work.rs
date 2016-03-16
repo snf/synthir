@@ -1021,8 +1021,8 @@ fn test_work() {
     use disassembler::Disassemble;
 
     let work: Work<X86_64> = Work::new();
-    let opnd1 = Opnd::new("eax", Some(32));
-    let opnd2 = Opnd::new("eax", Some(32));
+    let opnd1 = Opnd::new("eax", Some(32), OpndType::Reg);
+    let opnd2 = Opnd::new("eax", Some(32), OpndType::Reg);
     let ins = Instruction {
         mnemonic: "mov".to_owned(),
         opnds: [opnd1, opnd2].to_owned()

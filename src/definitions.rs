@@ -645,6 +645,7 @@ fn test_def_reg_value_little() {
                     vector: false,
                     fp: false,
                     ip: false,
+                    sp: false,
                     segment: false,
                     flags: false,
                     sub_regs: vec!["AX"]
@@ -662,6 +663,7 @@ fn test_def_reg_value_little() {
                     vector: false,
                     fp: false,
                     ip: false,
+                    sp: false,
                     segment: false,
                     flags: true,
                     sub_regs: vec!["PF"]
