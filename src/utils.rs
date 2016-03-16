@@ -20,7 +20,7 @@ pub trait ParseNum {
 impl ParseNum for u64 {
     fn parse_num(num: &str) -> Result<Self, ParseIntError> {
         if num.len() > 2 && &num[0..2] == "0x" {
-            u64::from_str_radix(&num[0..2], 16)
+            u64::from_str_radix(&num[2..], 16)
         } else {
             u64::from_str_radix(num, 10)
         }
