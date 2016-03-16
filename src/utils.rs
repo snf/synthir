@@ -1,5 +1,7 @@
 use num::bigint::{ToBigUint, BigUint};
 use num::traits::{One, ToPrimitive};
+
+use std::num::ParseIntError;
 use std::mem;
 
 pub trait Max {
@@ -8,6 +10,20 @@ pub trait Max {
 impl Max for BigUint {
     fn max(width: u32) -> BigUint {
         (BigUint::one() << width as usize) - BigUint::one()
+    }
+}
+
+pub trait ParseNum {
+    fn parse_num(num: &str) -> Result<Self, ParseIntError> where Self: Sized;
+}
+
+impl ParseNum for u64 {
+    fn parse_num(num: &str) -> Result<Self, ParseIntError> {
+        if num.len() > 2 && &num[0..2] == "0x" {
+            u64::from_str_radix(&num[0..2], 16)
+        } else {
+            u64::from_str_radix(num, 10)
+        }
     }
 }
 

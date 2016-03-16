@@ -1,9 +1,7 @@
 use assembler::Assemble;
 use disassembler::Disassemble;
-use native::{Arch, Instruction};
-//use definitions::{RegDefinition, SubRegDefinition, Definition, GenDefinition};
-
-//use std::collections::HashMap;
+use native::{Arch, Instruction, OpndType};
+use utils::ParseNum;
 
 #[allow(non_camel_case_types)]
 pub struct X86_64;
@@ -24,6 +22,17 @@ impl X86_64 {
             } else {
                 None
             }
+        }
+    }
+
+    fn get_opnd_type(opnd: &str) -> OpndType {
+        let definition = Self::gen_definition();
+        if definition.has_reg(opnd) {
+            OpndType::Reg
+        } else if u64::parse_num(opnd).is_ok() {
+            OpndType::Constant
+        } else {
+            OpndType::Label
         }
     }
 }
@@ -59,13 +68,13 @@ impl Disassemble for X86_64 {
     fn disassemble(bytes: &[u8], address: u64) -> Result<Instruction, ()> {
         let disas = try!(Self::disassemble_arch(Arch::X86_64, bytes, address));
         let (mnemonic, op_str) = disas;
-        let opnds: Vec<(&str, Option<u32>)> =
+        let opnds: Vec<(&str, Option<u32>, OpndType)> =
             if op_str.trim().is_empty() {
                 Vec::new()
             } else {
                 op_str.split(',')
                     .map(|s| s.trim())
-                    .map(|s| (s, Self::get_opnd_width(s)))
+                    .map(|s| (s, Self::get_opnd_width(s), Self::get_opnd_type(s)))
                     .collect()
             };
         Ok(Instruction::new(&mnemonic,

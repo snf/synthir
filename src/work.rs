@@ -7,7 +7,7 @@ use crossbeam;
 use emulator::{State, execute_expr};
 use expr::Expr;
 use sample::{DepValueSampler};
-use native::{Native, Opnd, Instruction};
+use native::{Native, Opnd, OpndType, Instruction};
 use definitions::{Definition, GenDefinition};
 use execution::{Execution, ExecutionRes, Dep};
 use stochastic::Stochastic;
@@ -51,7 +51,7 @@ impl<T: Native> Work<T> {
                             .filter(|r1| !used_ops.iter().any(|r2| &r2 == r1))
                             .nth(0).unwrap().clone();
                         used_ops.push(r.to_owned());
-                        Opnd::new(r, opnd.get_width())
+                        Opnd::new(r, opnd.get_width(), OpndType::Reg)
                     } else {
                         used_ops.push(opnd_text);
                         opnd.clone()
@@ -62,7 +62,7 @@ impl<T: Native> Work<T> {
                         .filter(|r1| !used_ops.iter().any(|r2| &r2 == r1))
                         .nth(0).unwrap().clone();
                     used_ops.push(r.to_owned());
-                    Opnd::new(r, opnd.get_width())
+                    Opnd::new(r, opnd.get_width(), OpndType::Reg)
                 }
             } else {
                 opnd.clone()

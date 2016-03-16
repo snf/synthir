@@ -20,10 +20,18 @@ pub enum Arch {
 pub trait Native: GenDefinition + Assemble + Disassemble { }
 impl<T> Native for T where T: GenDefinition + Assemble + Disassemble {}
 
+#[derive(Clone,Copy,Debug,PartialEq)]
+pub enum OpndType {
+    Reg,
+    Label,
+    Constant
+}
+
 #[derive(Clone,Debug,PartialEq)]
 pub struct Opnd {
     len: Option<u32>,
-    text: String
+    text: String,
+    ty: OpndType
 }
 
 #[derive(Clone,Debug,PartialEq)]
@@ -33,22 +41,24 @@ pub struct Instruction {
 }
 
 impl Opnd {
-    pub fn new(text: &str, len: Option<u32>) -> Opnd {
-        Opnd { text: text.to_owned(), len: len }
+    pub fn new(text: &str, len: Option<u32>, ty: OpndType) -> Opnd {
+        Opnd { text: text.to_owned(), len: len, ty: ty }
     }
     pub fn get_text(&self) -> &str { &self.text }
     pub fn get_width(&self) -> Option<u32> { self.len }
+    pub fn get_type(&self) -> OpndType { self.ty }
 }
 
 impl Instruction {
-    pub fn new(mnemonic: &str, opnds: &[(&str, Option<u32>)]) -> Instruction
+    pub fn new(mnemonic: &str, opnds: &[(&str, Option<u32>, OpndType)])
+               -> Instruction
     {
         Instruction {
             mnemonic: mnemonic.to_owned(),
             opnds: opnds.into_iter()
                 .map(
-                    |&(s, len)|
-                    Opnd::new(s, len))
+                    |&(s, len, ty)|
+                    Opnd::new(s, len, ty))
                 .collect()
         }
     }
