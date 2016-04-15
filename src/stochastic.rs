@@ -615,7 +615,7 @@ mod test {
 
     #[test]
     fn test_inc_eax() {
-        let mut stoc = get_inc_eax_stochastic();
+        //let mut stoc = get_inc_eax_stochastic();
         //stoc.work();
     }
 

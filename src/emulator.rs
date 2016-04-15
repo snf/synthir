@@ -653,25 +653,25 @@ mod tests {
     // Value
     #[test]
     fn test_Value_unsign() {
-        let a_n = Value { width: 32, value: 0xffFF_ffFFu32.to_biguint().unwrap() };
+        let a_n = Value::new(0xffFF_ffFFu32.to_biguint().unwrap(), 32);
         assert_eq!(a_n.unsign().value, 1u32.to_biguint().unwrap());
 
-        let a_n = Value { width: 32, value: 0x7fFF_ffFFu32.to_biguint().unwrap() };
+        let a_n = Value::new(0x7fFF_ffFFu32.to_biguint().unwrap(), 32);
         assert_eq!(a_n.unsign().value, 0x7fFF_ffFFu32.to_biguint().unwrap());
 
-        let a_n = Value { width: 32, value: 0x7fFF_ffFFu32.to_biguint().unwrap() };
+        let a_n = Value::new(0x7fFF_ffFFu32.to_biguint().unwrap(), 32);
         assert_eq!(a_n.unsign().value, 0x7fFF_ffFFu32.to_biguint().unwrap());
     }
     #[test]
     fn test_Value_set_sign_negative1(){
-        let a_n = Value { width: 32, value: 1.to_biguint().unwrap() };
+        let a_n = Value::new(1.to_biguint().unwrap(), 32);
         let a_n = a_n.set_sign(Sign::Negative);
         assert_eq!(a_n.value, 0xffFF_ffFFu32.to_biguint().unwrap());
     }
     #[test]
     fn test_Value_set_sign_negative2(){
         // XXX_
-        let a_n = Value { width: 32, value: 0x7fFF_ffFF.to_biguint().unwrap() };
+        let a_n = Value::new(0x7fFF_ffFF.to_biguint().unwrap(), 32);
         let a_n = a_n.set_sign(Sign::Negative);
         assert_eq!(a_n.value, 0x8000_0001u32.to_biguint().unwrap());
     }
@@ -689,169 +689,169 @@ mod tests {
     // Emulator
     #[test]
     fn test_ARShift_positive() {
-        let v1 = Value { width: 32, value: 0x7fFF_ffFF.to_biguint().unwrap() };
-        let v2 = Value { width:  8, value: 3.to_biguint().unwrap() };
+        let v1 = Value::new(0x7fFF_ffFF.to_biguint().unwrap(), 32);
+        let v2 = Value::new(3.to_biguint().unwrap(), 8);
         let vres = execute_signed_arithop(OpArith::ARShift, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0xfffffff.to_biguint().unwrap());
     }
     #[test]
     fn test_ARShift_negative() {
-        let v1 = Value { width: 32, value: 0x8000_1234u32.to_biguint().unwrap() };
-        let v2 = Value { width:  8, value: 8.to_biguint().unwrap() };
+        let v1 = Value::new(0x8000_1234u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(8.to_biguint().unwrap(), 8);
         let vres = execute_signed_arithop(OpArith::ARShift, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0xff80_0012u32.to_biguint().unwrap());
     }
     #[test]
     fn test_SDiv_positive() {
-        let v1 = Value { width: 32, value: 1000.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 10.to_biguint().unwrap() };
+        let v1 = Value::new(1000.to_biguint().unwrap(), 32);
+        let v2 = Value::new(10.to_biguint().unwrap(), 32);
         let vres = execute_signed_arithop(OpArith::SDiv, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 100.to_biguint().unwrap());
     }
     #[test]
     fn test_SDiv_negative_positive() {
-        let v1 = Value { width: 32, value: 0xffFF_ff00u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0x10.to_biguint().unwrap() };
+        let v1 = Value::new(0xffFF_ff00u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0x10.to_biguint().unwrap(), 32);
         let vres = execute_signed_arithop(OpArith::SDiv, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0xffFF_ffF0u32.to_biguint().unwrap());
     }
     #[test]
     fn test_SDiv_negative_negative() {
-        let v1 = Value { width: 32, value: 0xffFF_ff00u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0xffFF_ffF0u32.to_biguint().unwrap() };
+        let v1 = Value::new(0xffFF_ff00u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0xffFF_ffF0u32.to_biguint().unwrap(), 32);
         let vres = execute_signed_arithop(OpArith::SDiv, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0x10.to_biguint().unwrap());
     }
     #[test]
     fn test_SRem_negative_negative() {
-        let v1 = Value { width: 32, value: 0xffFF_ff01u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0xffFF_ffF0u32.to_biguint().unwrap() };
+        let v1 = Value::new(0xffFF_ff01u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0xffFF_ffF0u32.to_biguint().unwrap(), 32);
         let vres = execute_signed_arithop(OpArith::SRem, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0xffFF_ffF1u32.to_biguint().unwrap());
     }
     #[test]
     fn test_SRem_positive_negative() {
-        let v1 = Value { width: 32, value: 0x101u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0xffFF_ffF0u32.to_biguint().unwrap() };
+        let v1 = Value::new(0x101u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0xffFF_ffF0u32.to_biguint().unwrap(), 32);
         let vres = execute_signed_arithop(OpArith::SRem, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 1u32.to_biguint().unwrap());
     }
     #[test]
     fn test_Add() {
-        let v1 = Value { width: 32, value: 0x10.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0x10.to_biguint().unwrap() };
+        let v1 = Value::new(0x10.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0x10.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Add, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0x20.to_biguint().unwrap());
     }
     #[test]
     fn test_Add_ovf_trim() {
-        let v1 = Value { width: 32, value: 0x8000_0000u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0x8000_0000u32.to_biguint().unwrap() };
+        let v1 = Value::new(0x8000_0000u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0x8000_0000u32.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Add, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0.to_biguint().unwrap());
     }
     #[test]
     fn test_Add_ovf_notrim() {
-        let v1 = Value { width: 32, value: 0x8000_0000u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0x8000_0000u32.to_biguint().unwrap() };
+        let v1 = Value::new(0x8000_0000u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0x8000_0000u32.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Add, &v1, &v2, 33);
         assert_eq!(vres.unwrap().value, 0x1_0000_0000u64.to_biguint().unwrap());
     }
     #[test]
     fn test_Mul_ovf_notrim() {
-        let v1 = Value { width: 32, value: 0x8000_0000u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0x10.to_biguint().unwrap() };
+        let v1 = Value::new(0x8000_0000u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0x10.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Mul, &v1, &v2, 64);
         assert_eq!(vres.unwrap().value, 0x8_0000_0000u64.to_biguint().unwrap());
     }
     #[test]
     fn test_Sub_1() {
-        let v1 = Value { width: 32, value: 5.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 1.to_biguint().unwrap() };
+        let v1 = Value::new(5.to_biguint().unwrap(), 32);
+        let v2 = Value::new(1.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Sub, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 4.to_biguint().unwrap());
     }
     #[test]
     fn test_Sub_2() {
-        let v1 = Value { width: 32, value: 0xF000_0005u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 1.to_biguint().unwrap() };
+        let v1 = Value::new(0xF000_0005u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(1.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Sub, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0xF000_0004u32.to_biguint().unwrap());
     }
     #[test]
     fn test_Sub_neg1() {
-        let v1 = Value { width: 32, value: 0xFFff_FFf0u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0xFFff_FFffu32.to_biguint().unwrap() };
+        let v1 = Value::new(0xFFff_FFf0u32.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0xFFff_FFffu32.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Sub, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0xFFff_FFf1u32.to_biguint().unwrap());
     }
     #[test]
     fn test_Sub_ovf1() {
-        let v1 = Value { width: 32, value: 1.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 2.to_biguint().unwrap() };
+        let v1 = Value::new(1.to_biguint().unwrap(), 32);
+        let v2 = Value::new(2.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Sub, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0xffFF_ffFFu32.to_biguint().unwrap());
     }
     #[test]
     fn test_Sub_ovf2() {
-        let v1 = Value { width: 32, value: 1.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0xFFff_FFffu32.to_biguint().unwrap() };
+        let v1 = Value::new(1.to_biguint().unwrap(), 32);
+        let v2 = Value::new(0xFFff_FFffu32.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Sub, &v1, &v2, 32);
         assert_eq!(vres.unwrap().value, 0.to_biguint().unwrap());
     }
     #[test]
     fn test_Sub_ovf3() {
-        let v1 = Value { width: 32, value: 1.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 2.to_biguint().unwrap() };
+        let v1 = Value::new(1.to_biguint().unwrap(), 32);
+        let v2 = Value::new(2.to_biguint().unwrap(), 32);
         let vres = execute_unsigned_arithop(OpArith::Sub, &v1, &v2, 64);
         assert_eq!(vres.unwrap().value, 0xFFff_FFff_FFff_FFffu64.to_biguint().unwrap());
     }
     // XXX_ fill with the other unsigned operations
     #[test]
     fn test_Neg(){
-        let v = Value { width: 32, value: 0x1000_0000u32.to_biguint().unwrap() };
+        let v = Value::new(0x1000_0000u32.to_biguint().unwrap(), 32);
         let vres = execute_unop(OpUnary::Neg, &v, 32);
         assert_eq!(vres.value, 0xf000_0000u32.to_biguint().unwrap());
     }
     #[test]
     fn test_Not(){
-        let v = Value { width: 32, value: 0x1000_0000u32.to_biguint().unwrap() };
+        let v = Value::new(0x1000_0000u32.to_biguint().unwrap(), 32);
         let vres = execute_unop(OpUnary::Not, &v, 32);
         assert_eq!(vres.value, 0xefFF_ffFFu32.to_biguint().unwrap());
     }
     #[test]
     fn test_Bits_ok1(){
-        let v = Value {width: 32, value: 0xff0.to_biguint().unwrap() };
+        let v = Value::new(0xff0.to_biguint().unwrap(), 32);
         let vres = execute_bits(15, 8, &v);
         assert_eq!(vres.unwrap().value, 0xf.to_biguint().unwrap());
     }
     #[test]
     fn test_Bits_ok2(){
-        let v = Value {width: 32, value: 0x70000.to_biguint().unwrap() };
+        let v = Value::new(0x70000.to_biguint().unwrap(), 32);
         let vres = execute_bits(23, 16, &v);
         assert_eq!(vres.unwrap().value, 0x7.to_biguint().unwrap());
     }
     #[test]
     fn test_Bits_ok3(){
-        let v = Value {width: 32, value: 0x70000.to_biguint().unwrap() };
+        let v = Value::new(0x70000.to_biguint().unwrap(), 32);
         let vres = execute_bits(31, 24, &v);
         assert_eq!(vres.unwrap().value, 0.to_biguint().unwrap());
     }
     #[test]
     fn test_Bits_ok4(){
-        let v = Value {width: 32, value: 0xffFF_ffFFu32.to_biguint().unwrap() };
+        let v = Value::new(0xffFF_ffFFu32.to_biguint().unwrap(), 32);
         let vres = execute_bits(31, 0, &v);
         assert_eq!(vres.unwrap().value, 0xffFF_ffFFu32.to_biguint().unwrap());
     }
     #[test]
     fn test_Bits_err1(){
-        let v = Value {width: 32, value: 0x70000.to_biguint().unwrap() };
+        let v = Value::new(0x70000.to_biguint().unwrap(), 32);
         let vres = execute_bits(32, 35, &v);
         assert_eq!(vres.is_err(), true);
     }
     #[test]
     fn test_Bits_err2(){
-        let v = Value {width: 32, value: 0x70000.to_biguint().unwrap() };
+        let v = Value::new(0x70000.to_biguint().unwrap(), 32);
         let vres = execute_bits(4, 7, &v);
         assert_eq!(vres.is_err(), true);
     }
