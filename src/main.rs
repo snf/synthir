@@ -1,4 +1,3 @@
-#![feature(test)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
 extern crate num;
@@ -16,8 +15,6 @@ extern crate clap;
 extern crate crossbeam;
 extern crate synthir_execute as execute;
 extern crate rustc_serialize as serialize;
-
-extern crate test;
 
 #[macro_use]
 pub mod utils;

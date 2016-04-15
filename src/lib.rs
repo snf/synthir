@@ -1,4 +1,3 @@
-#![feature(test)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
 extern crate num;
@@ -14,8 +13,6 @@ extern crate itertools;
 extern crate permutohedron;
 extern crate crossbeam;
 extern crate synthir_execute as execute;
-
-extern crate test;
 
 #[macro_use]
 pub mod utils;

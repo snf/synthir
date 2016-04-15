@@ -594,7 +594,6 @@ impl<'a> Transform<'a> {
 mod test {
     use num::bigint::ToBigUint;
     use std::collections::HashMap;
-    use test::{Bencher, black_box};
 
     use expr::Expr;
     use stochastic::{Stochastic, Transform};
@@ -620,11 +619,4 @@ mod test {
         //stoc.work();
     }
 
-    #[bench]
-    fn bench_inc_eax(b: &mut Bencher) {
-        let mut stoc = get_inc_eax_stochastic();
-        b.iter(|| {
-            //black_box(stoc.work());
-        });
-    }
 }

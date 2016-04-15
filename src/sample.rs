@@ -670,31 +670,11 @@ fn sample() -> Expr {
     Expr::Reg("EAX".to_owned(), 32)
 }
 
-#[cfg(bench)]
-mod bench {
-    use expr::Expr;
-    use num::bigint::ToBigUint;
-    use sample::{constants, RandExprSampler};
-    use test::{Bencher, black_box};
-
-    #[bench]
-    fn bench_sample1(b: &mut Bencher) {
-        let r1 = Expr::Reg("EAX".to_owned(), 32);
-        let r2 = Expr::Reg("EBX".to_owned(), 32);
-        let mut sample = RandExprSampler::new(&[r1, r2]);
-        b.iter(|| {
-            black_box(sample.sample_expr_w(Some(32)));
-        });
-    }
-
-}
-
 #[cfg(test)]
 mod test {
     use expr::Expr;
     use num::bigint::ToBigUint;
     use sample::{constants, RandExprSampler};
-    use test::{Bencher, black_box};
 
     #[test]
     fn test_gen_alternated() {

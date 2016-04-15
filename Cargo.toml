@@ -4,12 +4,18 @@ version = "0.1.0"
 authors = ["snf"]
 
 [[bin]]
-name = "synthir_bin"
+name = "synthir_tool"
 
 [lib]
 name = "synthir"
 
+[[bench]]
+name = "synthir"
+
 [profile.release]
+debug = true
+
+[profile.bench]
 debug = true
 
 [dependencies]

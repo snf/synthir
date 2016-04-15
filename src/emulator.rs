@@ -16,7 +16,7 @@ pub struct State<'a> {
 }
 
 /// Initialize the global vector of BigUint masks
-fn init_masks() {
+unsafe fn init_masks() {
     let mut v_a = Box::new(Vec::new());
     let mut v_b = Box::new(Vec::new());
 
@@ -26,10 +26,8 @@ fn init_masks() {
         v_a.push(all_mask);
         v_b.push(bit_mask);
     }
-    unsafe {
-        MASKS_ALL = Box::into_raw(v_a);
-        MASKS_BIT = Box::into_raw(v_b);
-    }
+    MASKS_ALL = Box::into_raw(v_a);
+    MASKS_BIT = Box::into_raw(v_b);
 }
 
 #[inline(always)]
@@ -150,9 +148,9 @@ pub struct Value {
 }
 
 impl Value {
-    #[cfg(test)]
+    #[cfg(any(test, bench))]
     pub fn new(value: BigUint, width: u32) -> Value {
-        init_masks();
+        setup_emulator();
         let size_mask = mask_n_bits(width);
         Value { value: value & size_mask, width: width }
     }
@@ -589,12 +587,16 @@ fn execute_expr_2(state: &State, e: &Expr, w: u32) -> Result<Value,()> {
     Ok(res)
 }
 
-pub fn execute_expr(state: &State, e: &Expr, w: u32) -> Result<Value,()> {
+pub fn setup_emulator() {
     unsafe {
         if MASKS_ALL.is_null() || MASKS_BIT.is_null() {
             init_masks();
         }
     }
+}
+
+pub fn execute_expr(state: &State, e: &Expr, w: u32) -> Result<Value,()> {
+    setup_emulator();
     execute_expr_2(state, e, w)
 }
 
@@ -683,6 +685,7 @@ mod tests {
         let a_n = Value::from_int(0x80, 32);
         assert_eq!(a_n.value, 0x80.to_biguint().unwrap());
     }
+
     // Emulator
     #[test]
     fn test_ARShift_positive() {
@@ -880,31 +883,4 @@ mod tests {
     }
     // XXX_ tests for boolops
     // XXX_ tests for checking abortions/Err
-
-    // Benchmarks
-    use test::{Bencher, black_box};
-    #[bench]
-    fn bench_Mul(b: &mut Bencher) {
-        let v1 = Value { width: 32, value: 0x8000_0000u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0x10.to_biguint().unwrap() };
-        b.iter(|| {
-            black_box(execute_unsigned_arithop(OpArith::Mul, &v1, &v2, 64).ok());
-        });
-    }
-    #[bench]
-    fn bench_Sub_ovf(b: &mut Bencher) {
-        let v1 = Value { width: 32, value: 1.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 2.to_biguint().unwrap() };
-        b.iter(|| {
-            black_box(execute_unsigned_arithop(OpArith::Sub, &v1, &v2, 32).ok());
-        });
-    }
-    #[bench]
-    fn bench_Add_ovf_trim(b: &mut Bencher) {
-        let v1 = Value { width: 32, value: 0x8000_0000u32.to_biguint().unwrap() };
-        let v2 = Value { width: 32, value: 0x8000_0000u32.to_biguint().unwrap() };
-        b.iter(|| {
-            black_box(execute_unsigned_arithop(OpArith::Add, &v1, &v2, 32).ok());
-        });
-    }
 }
