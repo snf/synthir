@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/snf/synthir.svg?branch=master)](https://travis-ci.org/snf/synthir)
 
-This tool uses templates, MCMC and a mixed approach to synthetizes IR transformations for assembly instructions (currently only supporting x86_64).
+This tool uses templates, MCMC and a mixed approach to synthetize IR transformations for assembly instructions (currently only supporting x86_64).
 
 Slides from Ekoparty: [IR transformation synthesis for assembly instructions](https://speakerdeck.com/snf/ir-transformation-synthesis-for-assembly-instructions)
 
