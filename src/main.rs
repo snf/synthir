@@ -7,7 +7,7 @@ extern crate bit_vec;
 extern crate bit_set;
 extern crate libc;
 extern crate time;
-extern crate llvm_assemble;
+extern crate keystone;
 extern crate z3;
 extern crate itertools;
 extern crate permutohedron;

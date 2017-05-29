@@ -19,7 +19,7 @@ debug = true
 debug = true
 
 [dependencies]
-ieee754 = "0.2"
+ieee754 = "0.2.2"
 num = "0.1"
 rand = "0.3"
 bit-vec = "0.4"
@@ -31,6 +31,7 @@ permutohedron = "0.2"
 crossbeam = "0.2"
 clap = "2.1"
 rustc-serialize = "0.3"
+keystone = "0.9.0"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"
@@ -38,8 +39,8 @@ git = "https://github.com/ebfe/rust-capstone.git"
 [dependencies.z3]
 git = "https://github.com/snf/z3-rs.git"
 
-[dependencies.llvm_assemble]
-git = "https://github.com/snf/llvm_assemble.git"
+#[dependencies.llvm_assemble]
+#git = "https://github.com/snf/llvm_assemble.git"
 
 [dependencies.synthir_execute]
 git = "https://github.com/snf/synthir_execute.git"
