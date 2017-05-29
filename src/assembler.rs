@@ -16,7 +16,7 @@ pub trait Assemble {
         };
         let engine = k_a::Keystone::new(n_arch, n_bits)
             .expect("Could not initialize Keystone engine");
-        engine.option(k_a::OptionType::SYNTAX, k_a::OPT_SYNTAX_NASM)
+        engine.option(k_a::OptionType::SYNTAX, k_a::OPT_SYNTAX_INTEL)
             .expect("Could not set option to nasm syntax");
         let res = engine.asm(text.to_string(), 0);
         match res {
@@ -28,12 +28,14 @@ pub trait Assemble {
 
 #[test]
 fn int3() {
-    use llvm_assemble::{Arch, assemble};
-    assert_eq!(assemble(Arch::X86, "int3").unwrap(), [0xcc]);
+    use x86_64::X86_64;
+    use assembler::Assemble;
+    assert_eq!(X86_64::assemble("int3").unwrap(), [0xcc]);
 }
 
 #[test]
 fn nop_nop() {
-    use llvm_assemble::{Arch, assemble};
-    assert_eq!(assemble(Arch::X86_64, "nop; nop").unwrap(), [0x90, 0x90]);
+    use x86_64::X86_64;
+    use assembler::Assemble;
+    assert_eq!(X86_64::assemble("nop; nop").unwrap(), [0x90, 0x90]);
 }
