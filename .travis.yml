@@ -9,6 +9,10 @@ before_script:
   - sudo apt-get install -y --force-yes libcapstone-dev
   - sudo apt-get install -y libz3-dev
   - sudo apt-get install -y --force-yes g++ libz-dev libedit-dev llvm-3.8-dev
+  - wget https://github.com/keystone-engine/keystone/archive/0.9.1.tar.gz
+  - tar -xzvf 0.9.1.tar.gz
+  - pushd keystone-0.9.1 && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_LIBS_ONLY=0 -DLLVM_BUILD_32_BITS="0" -DLLVM_LIBDIR_SUFFIX="" -DCMAKE_BUILD_TYPE=$BUILDTYPE -DBUILD_SHARED_LIBS=ON -DLLVM_TARGETS_TO_BUILD="all" -G "Unix Makefiles"  .. && sudo make install && popd
+
 
 language: rust
 rust:
